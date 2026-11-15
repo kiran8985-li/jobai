@@ -1,0 +1,26 @@
+Priya Shah
+Software Developer
+priya.shah@example.com | 07700 900123 | Location: Manchester, UK
+
+Profile
+Backend developer with 5 years of experience building Python web services and data pipelines.
+
+Experience
+Senior Software Developer
+Northwind Digital Ltd | Mar 2021 - Present
+- Built REST APIs in Python and Flask serving 2 million requests per day
+- Reduced AWS costs by 30% by moving batch jobs to Docker on ECS
+- Mentored 3 junior developers
+
+Software Developer, Brightside Analytics, Jun 2018 - Feb 2021
+- Developed SQL reporting pipelines in PostgreSQL
+- Automated testing with pytest, cutting release time by 40%
+
+Education
+BSc Computer Science, University of Leeds, 2014 - 2017
+
+Skills
+Python, Flask, SQL, PostgreSQL, Docker, AWS, Git, Agile
+
+Certifications
+AWS Certified Cloud Practitioner

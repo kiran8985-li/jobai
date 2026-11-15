@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* Dark mode is class-based so the toggle can override the system setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --accent: #6c4dff;
+  --accent-hover: #4b32d6;
+  --accent-tint: #eeeaff;
+  --ink: #14122b;
+  --page: #f5f5fb;
+  --surface: #ffffff;
+  --border: #e6e4f2;
+  --text: #14122b;
+  --muted: #5d5a78;
+}
+
+.dark {
+  --accent: #8b73ff;
+  --accent-hover: #a594ff;
+  --accent-tint: #2a2452;
+  --page: #0e0c1f;
+  --surface: #1a1733;
+  --border: #2e2a4d;
+  --text: #f1f0fa;
+  --muted: #a9a6c4;
+}
+
+@theme inline {
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-tint: var(--accent-tint);
+  --color-ink: var(--ink);
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-line: var(--border);
+  --color-fg: var(--text);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --radius-card: 18px;
+  --radius-control: 12px;
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
