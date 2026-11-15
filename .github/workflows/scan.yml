@@ -1,0 +1,38 @@
+# Calls the app's scan route every 15 minutes.
+# Set two repository secrets (Settings → Secrets and variables → Actions):
+#   APP_URL      your deployed site, e.g. https://jobpilotai.co.uk  (no trailing slash)
+#   CRON_SECRET  the same value as CRON_SECRET in the app's settings
+name: Job scan
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: job-scan
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run scan
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL or CRON_SECRET secret is not set yet; nothing to do."
+            exit 0
+          fi
+          code=$(curl -sS -o response.json -w "%{http_code}" --max-time 120 \
+            -X POST -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/scan")
+          cat response.json; echo
+          if [ "$code" != "200" ] && [ "$code" != "202" ]; then
+            echo "Scan route answered HTTP $code"
+            exit 1
+          fi
