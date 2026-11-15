@@ -1,17 +1,51 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getSessionUser } from "@/lib/auth";
+import { hasSupabase } from "@/lib/env";
+import { safeNext } from "@/lib/paths";
+import { Alert, AuthShell } from "@/components/auth-ui";
+import { GoogleButton } from "@/components/google-button";
+import { LoginForm } from "./login-form";
 
-/** Placeholder. Login and invite-only sign-up are built in Prompt 1. */
-export default function LoginPage() {
+const ERRORS: Record<string, string> = {
+  not_configured: "Sign-in is not set up yet. The site owner needs to add the Supabase settings.",
+  invite: "That account has no invite. JobPilot AI is invite-only for now; sign up with the email address your invite was sent to.",
+  suspended: "This account has been suspended. Contact the site owner.",
+  auth: "We could not sign you in. Please try again.",
+  link: "That link has expired or was already used. Log in, or ask for a new verification email.",
+};
+const NOTICES: Record<string, string> = {
+  verified: "Your email is verified. Log in to continue.",
+  signed_out: "You have been signed out.",
+};
+
+export const metadata = { title: "Log in – JobPilot AI" };
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; error?: string; notice?: string }>;
+}) {
+  const sp = await searchParams;
+  const next = safeNext(sp.next);
+  if (await getSessionUser()) redirect(next);
+  const configured = hasSupabase();
+  const error = sp.error ? ERRORS[sp.error] : !configured ? ERRORS.not_configured : undefined;
+  const notice = sp.notice ? NOTICES[sp.notice] : undefined;
+
   return (
-    <main className="mx-auto max-w-md px-4 py-16">
-      <h1 className="text-3xl font-extrabold tracking-tight">Log in</h1>
-      <div className="mt-6 rounded-[18px] border border-line bg-surface p-6">
-        <p className="font-semibold">Sign-in is not available yet</p>
-        <p className="mt-1 text-sm text-muted">Accounts open with the invite-only beta.</p>
+    <AuthShell title="Log in">
+      {error && <Alert kind="error">{error}</Alert>}
+      {notice && <Alert kind="notice">{notice}</Alert>}
+      <LoginForm next={next} />
+      <div className="my-5 flex items-center gap-3 text-xs font-semibold text-muted">
+        <span className="h-px flex-1 bg-line" />
+        or
+        <span className="h-px flex-1 bg-line" />
       </div>
-      <Link href="/" className="mt-6 inline-flex min-h-11 items-center font-semibold text-accent">
-        Back to home
-      </Link>
-    </main>
+      <GoogleButton next={next} label="Continue with Google" />
+      <p className="mt-6 text-sm text-muted">
+        New here? JobPilot AI is invite-only for now. Open the link in your invite email to create your account.
+      </p>
+    </AuthShell>
   );
 }

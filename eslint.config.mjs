@@ -18,6 +18,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Plain Node scripts run against a local Supabase; replaced by Playwright tests in Prompt 10.
+      "tests/e2e/**",
     ],
   },
 ];

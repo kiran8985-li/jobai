@@ -48,7 +48,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       type="button"
       onClick={next}
       aria-label={`${label}. Click to change.`}
-      className={`min-h-11 rounded-[12px] whitespace-nowrap px-3 text-sm font-semibold transition-colors ${className}`}
+      className={`min-h-11 rounded-[12px] whitespace-nowrap text-sm font-semibold transition-colors ${className}`}
     >
       <span className="hidden sm:inline">Theme: </span>
       {name}

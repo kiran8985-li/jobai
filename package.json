@@ -13,7 +13,9 @@
     "check-env": "node scripts/check-env.mjs",
     "predev": "node scripts/check-env.mjs",
     "check:secrets": "node scripts/check-client-secrets.mjs",
-    "prebuild": "node scripts/check-env.mjs"
+    "prebuild": "node scripts/check-env.mjs",
+    "invite": "node --env-file=.env.local scripts/create-invite.mjs",
+    "test:db": "bash scripts/test-db.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -32,6 +34,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.29",
+    "supabase": "^3.1.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.2.7"

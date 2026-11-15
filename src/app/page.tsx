@@ -13,7 +13,7 @@ export default function Home() {
           JobPilot AI
         </span>
         <div className="flex items-center gap-1">
-          <ThemeToggle className="text-muted hover:bg-accent-tint" />
+          <ThemeToggle className="px-3 text-muted hover:bg-accent-tint" />
           <Link
             href="/login"
             className="flex min-h-11 items-center whitespace-nowrap rounded-[12px] px-3 text-sm font-semibold text-accent hover:bg-accent-tint"

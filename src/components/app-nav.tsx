@@ -20,7 +20,7 @@ export const seekerNav: NavItem[] = [
  * Dark left sidebar on desktop, top bar with a slide-out menu on phones.
  * `isAdmin` must come from a server-side check; the Admin link is hidden otherwise.
  */
-export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
+export function AppNav({ isAdmin = false, userLabel }: { isAdmin?: boolean; userLabel?: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -53,6 +53,21 @@ export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
     </ul>
   );
 
+  const footer = (
+    <div className="space-y-1 border-t border-white/10 pt-3">
+      {userLabel && <p className="truncate px-4 text-xs text-white/50">{userLabel}</p>}
+      <form action="/auth/signout" method="post">
+        <button
+          type="submit"
+          className="flex min-h-11 w-full items-center rounded-[12px] px-4 text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+        >
+          Sign out
+        </button>
+      </form>
+      <ThemeToggle className="w-full px-4 text-left text-white/70 hover:bg-white/10 hover:text-white" />
+    </div>
+  );
+
   return (
     <>
       {/* Desktop sidebar */}
@@ -61,7 +76,7 @@ export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
         <nav aria-label="Main" className="mt-8 flex-1">
           {links}
         </nav>
-        <ThemeToggle className="text-white/70 hover:bg-white/10 hover:text-white" />
+        {footer}
       </aside>
 
       {/* Phone top bar */}
@@ -94,7 +109,7 @@ export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
           >
             <Brand />
             <div className="mt-8 flex-1">{links}</div>
-            <ThemeToggle className="text-white/70 hover:bg-white/10 hover:text-white" />
+            {footer}
           </nav>
         </div>
       )}
