@@ -142,7 +142,12 @@ function summaryProblem(summary: string, master: CvProfile, job: JobContext): st
   if (badNumber) return `contained a figure that is not on your CV (${badNumber})`;
 
   const masterSkills = new Set([...master.skills.map(canonical), ...findSkills(masterText)]);
-  const badSkill = findSkills(summary).find((s) => !masterSkills.has(s));
+  // Naming the job or the employer being applied to ("...role at Larkfield Logistics") is not a
+  // skill claim, so those exact phrases are set aside before looking for skills.
+  const escape = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const named = [job.title, job.company].map((t) => t.trim()).filter(Boolean).map(escape);
+  const claims = named.length ? summary.replace(new RegExp(named.join("|"), "gi"), " ") : summary;
+  const badSkill = findSkills(claims).find((s) => !masterSkills.has(s));
   if (badSkill) return `mentioned a skill that is not on your CV (${badSkill})`;
 
   const allowed = new Set([...contentTokens(masterText), ...contentTokens(`${job.title} ${job.company}`), ...[...SUMMARY_FILLER].map(stem)]);

@@ -112,6 +112,19 @@ describe("validator: nothing invented survives", () => {
     }
   });
 
+  it("lets the summary name the job and employer applied to, without treating them as skill claims", () => {
+    const logistics = { title: "Kubernetes Platform Engineer", company: "Larkfield Logistics" };
+    const ok = clone();
+    ok.summary = "Backend developer with 5 years of experience building Python web services, seeking the Kubernetes Platform Engineer role at Larkfield Logistics.";
+    expect(validateTailored(ok, master, logistics)).toMatchObject({ flags: [], cv: { summary: ok.summary } });
+    // Claiming the skill itself is still caught.
+    const bad = clone();
+    bad.summary = "Backend developer with strong Kubernetes and logistics experience, seeking the Kubernetes Platform Engineer role at Larkfield Logistics.";
+    const r = validateTailored(bad, master, logistics);
+    expect(r.cv.summary).toBe(master.summary);
+    expect(r.flags.join()).toMatch(/skill that is not on your CV/);
+  });
+
   it("reads figures consistently", () => {
     expect(numbers("Cut costs by 30 % and £40k, serving 2 million users on Python 3.12")).toEqual(["30%", "40k", "2", "3.12"]);
     expect(numbers("no figures")).toEqual([]);
