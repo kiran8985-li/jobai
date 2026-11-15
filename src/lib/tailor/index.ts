@@ -11,6 +11,8 @@ const SYSTEM =
   "Never add employers, job titles, dates, qualifications, skills, tools, numbers or achievements that are not in the CV. " +
   "Each bullet you return must be a rewording of ONE bullet from the SAME job entry, keeping every number exactly as written. " +
   "Use the advert's wording only where the CV bullet already supports it. " +
+  "Write in British English spelling (organised, colour, centre, programme), but never change the spelling of names: " +
+  "tools, products, companies, qualifications, and the skills in the skill list stay exactly as written. " +
   'Reply with one JSON object: {"summary": "2-3 sentences, at most 70 words, no name, aimed at this role, using only facts from the CV", ' +
   '"skills": ["skills from the CV skill list only, most relevant to the advert first"], ' +
   '"experience": [{"id": "E1", "bullets": ["most relevant first"]}], ' +

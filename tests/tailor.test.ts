@@ -96,6 +96,16 @@ describe("validator: nothing invented survives", () => {
     expect(flags).toHaveLength(1);
   });
 
+  it("accepts British spelling of the master's own words, and still catches new claims", () => {
+    const us = "Optimized the color palette and organized usability testing at the design center, modeling user behavior for the program";
+    const uk = "Optimised the colour palette and organised usability testing at the design centre, modelling user behaviour for the programme";
+    expect(bulletSupportedBy(uk, us)).toBe(true);
+    expect(bulletSupportedBy(us, uk)).toBe(true);
+    // Spelling help must not let different words through.
+    expect(bulletSupportedBy("Led a company-wide reorganisation of four regional offices", us)).toBe(false);
+    expect(bulletSupportedBy("Our hourly tours of the flour store", "Or horly tors of the flor store")).toBe(false);
+  });
+
   it("does not let one master bullet back two tailored bullets", () => {
     const c = clone();
     c.experience[0].bullets = ["Mentored 3 junior developers", "Mentored 3 junior developers"];

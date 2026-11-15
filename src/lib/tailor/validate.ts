@@ -24,7 +24,24 @@ const SUMMARY_FILLER = new Set(
 );
 
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
-const stem = (w: string) => (w.length > 5 ? w.replace(/(ing|ed|es|s)$/, "") : w.length > 3 ? w.replace(/s$/, "") : w);
+/**
+ * British and American spellings of a word count as the same word ("optimised" = "optimized",
+ * "colour" = "color"), so a CV reworded into British English still matches its master.
+ */
+const spelling = (w: string) =>
+  w
+    .replace(/is(e|ed|es|ing|ation|ations|er|ers)$/, "iz$1")
+    .replace(/ys(e|ed|es|ing)$/, "yz$1")
+    .replace(/^(.{3,})our(s|ed|ing|al|ite|ites)?$/, "$1or$2")
+    .replace(/^(cent|theat|met|fib|calib)re(s|d)?$/, "$1er$2")
+    .replace(/^programme(s|d)?$/, "program$1")
+    .replace(/^(.{3,})ll(ed|ing|er|ers)$/, "$1l$2")
+    .replace(/ogue(s)?$/, "og$1")
+    .replace(/ence(s)?$/, "ense$1");
+const stem = (w0: string) => {
+  const w = spelling(w0);
+  return w.length > 5 ? w.replace(/(ing|ed|es|s)$/, "") : w.length > 3 ? w.replace(/s$/, "") : w;
+};
 /** Meaningful words of a text, lightly stemmed, without stop words. */
 export const contentTokens = (s: string) =>
   (s.toLowerCase().match(/[a-z][a-z+#.'-]*[a-z+#]|[a-z]/g) ?? []).map((w) => w.replace(/['.-]+$/g, "")).filter((w) => !STOP.has(w)).map(stem);

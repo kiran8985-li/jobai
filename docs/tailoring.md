@@ -32,11 +32,19 @@ draft is discarded and the reorder-only version is used instead.
 - **Reorder-only** (no AI, AI failure, or a rejected draft): no rewording at all. Skills the advert
   asks for move to the front; within each job the most relevant bullets move up.
 
+## British English
+
+The AI is told to write in British spelling (organised, colour, centre) and to leave names alone:
+tools, products, companies, qualifications and the skills list keep their original spelling. The
+fact check treats British and American spellings of a word as the same word, so "optimised" still
+matches a master CV that says "optimized". The reorder-only version changes no spelling.
+
 ## Files
 
 - Single column, standard headings, real text, no tables, images or text boxes: the layout
   applicant tracking systems read most reliably. Tests extract the PDF's text back out to prove it.
-- PDF: A4, DejaVu Sans (bundled in `assets/fonts/`) so accented names print correctly. Characters
+- PDF: A4, and if a CV would just spill onto a third page its type and spacing are tightened to
+  fit two, the usual UK limit. DejaVu Sans (bundled in `assets/fonts/`) so accented names print correctly. Characters
   the font lacks (emoji, Chinese, Japanese, Korean) print as "?".
 - Stored privately in the `tailored` bucket as `<user id>/<job id>.pdf` and `.docx`. Only the
   server writes there; a user can read only their own folder.
