@@ -22,6 +22,7 @@ const profileSchema = z.object({
       }),
     )
     .max(30, "Keep to 30 jobs or fewer."),
+  projects: z.array(z.object({ name: line(160), tech: line(200), bullets: z.array(line(500)).max(25, "Keep to 25 bullets per project.") })).max(20, "Keep to 20 projects or fewer."),
   education: z.array(z.object({ degree: line(160), institution: line(160), dates: line(60) })).max(15),
   certifications: z.array(line(160)).max(40),
   languages: z.array(line(60)).max(20),

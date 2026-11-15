@@ -135,6 +135,78 @@ describe("validator: nothing invented survives", () => {
   });
 });
 
+describe("projects and related skills", () => {
+  const withProjects = (): CvProfile => ({
+    ...clone(),
+    skills: ["Figma", "Wireframing", "Postgres", "Java", "SQL"],
+    projects: [
+      { name: "Voice Assistant", tech: "Figma, HTML, CSS", bullets: ["Designed the front-end UI for a voice assistant", "Worked in a team of 4"] },
+      { name: "Yard Management System", tech: "Java, SQL", bullets: ["Designed dashboards for 500+ steel yards, improving visibility by 25%"] },
+    ],
+  });
+  const sqlJob = { title: "Java Developer", company: "Acme", description: "Java and SQL. Dashboards." };
+
+  it("keeps the master's projects, lets them be reordered, and drops invented ones", () => {
+    const m = withProjects();
+    const c = structuredClone(m);
+    c.projects = [
+      { name: "Yard Management System", tech: "Rust, Kubernetes", bullets: ["Designed dashboards for 500+ steel yards, improving visibility by 95%", "Designed dashboards for 500+ steel yards, improving visibility by 25%"] },
+      { name: "Mars Rover", tech: "C++", bullets: ["Landed it"] },
+    ];
+    const { cv, flags, failedBadly } = validateTailored(c, m, sqlJob);
+    expect(cv.projects.map((p) => p.name)).toEqual(["Yard Management System", "Voice Assistant"]);
+    expect(cv.projects[0]).toEqual({ name: "Yard Management System", tech: "Java, SQL", bullets: ["Designed dashboards for 500+ steel yards, improving visibility by 25%"] });
+    expect(cv.projects[1].bullets).toEqual(m.projects[0].bullets);
+    expect(JSON.stringify(cv)).not.toMatch(/Mars|Rust|Kubernetes|95%/);
+    expect(flags.join("\n")).toMatch(/project that is not on your master CV: Mars Rover/);
+    expect(failedBadly).toBe(true);
+  });
+
+  it("never swaps one skill for a related one, but accepts a clear alias", () => {
+    const m = withProjects();
+    const c = structuredClone(m);
+    c.skills = ["Wireframing", "PostgreSQL", "UX"];
+    const { cv, flags } = validateTailored(c, m, sqlJob);
+    // "Wireframing" stays itself (it used to be replaced by "Figma"); "PostgreSQL" maps to the master's "Postgres".
+    expect(cv.skills.slice(0, 2)).toEqual(["Wireframing", "Postgres"]);
+    expect([...cv.skills].sort()).toEqual([...m.skills].sort());
+    // "UX" could mean Figma or Wireframing here, so it is not accepted.
+    expect(flags).toEqual(["Removed a skill that is not on your master CV: UX"]);
+  });
+
+  it("reorder-only puts the most relevant project first; the files include a Projects section", async () => {
+    const m = withProjects();
+    const out = reorderOnly(m, sqlJob);
+    expect(out.projects.map((p) => p.name)).toEqual(["Yard Management System", "Voice Assistant"]);
+    const { text } = await extractText("cv.pdf", await renderCvPdf(out));
+    expect(text.replace(/\s+/g, " ")).toContain("Projects Yard Management System Java, SQL");
+    const docx = await extractText("cv.docx", await renderCvDocx(out));
+    expect(docx.text).toContain("Voice Assistant");
+  });
+
+  it("sends projects to the AI by id and accepts its reordering", async () => {
+    const m = withProjects();
+    const ai = fakeAI({ summary: m.summary, skills: ["Java", "SQL"], experience: [], projects: [{ id: "P2", bullets: ["Designed dashboards for 500+ steel yards, improving visibility by 25%"] }, { id: "P1", bullets: ["Worked in a team of 4"] }, { id: "P7", bullets: ["Invented"] }] });
+    const r = await tailorCv(m, sqlJob, "u1", ai.deps);
+    expect(ai.sent.join()).toContain('"id":"P1","name":"Voice Assistant"');
+    expect(r.method).toBe("reorder"); // an unknown project id means the draft invented something
+    const ok = fakeAI({ summary: m.summary, skills: ["Java", "SQL"], experience: [], projects: [{ id: "P2", bullets: ["Designed dashboards for 500+ steel yards, improving visibility by 25%"] }, { id: "P1", bullets: ["Worked in a team of 4"] }] });
+    const good = await tailorCv(m, sqlJob, "u1", ok.deps);
+    expect(good.method).toBe("ai");
+    expect(good.content.projects.map((p) => [p.name, p.bullets.length])).toEqual([["Yard Management System", 1], ["Voice Assistant", 1]]);
+  });
+
+  it("says so when the AI's reply cannot be used", async () => {
+    // A reply cut off mid-sentence (the model ran out of room) is not valid JSON.
+    const ai = fakeAI({});
+    ai.deps.provider!.completeJson = async () => ({ content: '{"summary":"Backend developer with', promptTokens: 1, completionTokens: 1 });
+    const r = await tailorCv(clone(), job, "u1", ai.deps);
+    expect(r.method).toBe("reorder");
+    expect(r.flags).toEqual(["The AI could not tailor this CV just now, so this version only reorders your own wording."]);
+    expect(r.content.experience.map((e) => e.company)).toEqual(master.experience.map((e) => e.company));
+  });
+});
+
 describe("reorder-only tailoring (no AI)", () => {
   it("moves wanted skills and relevant bullets up without changing a word", () => {
     const out = reorderOnly(master, job);

@@ -57,6 +57,16 @@ describe("heuristic parser edge cases", () => {
     ]);
     expect(p.skills).toEqual(["Excel", "SQL", "power bi"]);
   });
+  it("reads a Projects section: name, tools, and what was done", () => {
+    const p = heuristicParse(
+      ["Sam Jones", "", "Projects", "Yard Management System | Figma, Java, SQL", "- Designed dashboards for 500+ yards", "- Automated receipts, cutting processing time by 40%", "",
+        "Campus Platform | PHP", "Built a multi-role system for students and recruiters.", "", "Skills", "Java"].join("\n"),
+    );
+    expect(p.projects).toEqual([
+      { name: "Yard Management System", tech: "Figma, Java, SQL", bullets: ["Designed dashboards for 500+ yards", "Automated receipts, cutting processing time by 40%"] },
+      { name: "Campus Platform", tech: "PHP", bullets: ["Built a multi-role system for students and recruiters."] },
+    ]);
+  });
   it("returns an empty but valid profile for text with no structure", () => {
     const p = heuristicParse("hello world");
     expect(p.experience).toEqual([]);
@@ -79,8 +89,16 @@ describe("skills", () => {
 });
 
 describe("normalizeProfile", () => {
-  it("drops junk and de-duplicates skills by alias", () => {
-    const p = normalizeProfile({ name: 5, skills: ["Postgres", "postgresql", "", 7], experience: [{}, "x", { title: "Dev", bullets: ["a", 1] }], extra: "ignored" });
+  it("keeps related skills apart and removes only exact repeats", () => {
+    const p = normalizeProfile({ skills: ["Figma", "Wireframing", "figma", "Git", "GitHub", " Git "] });
+    expect(p.skills).toEqual(["Figma", "Wireframing", "Git", "GitHub"]);
+  });
+  it("reads projects and drops junk ones", () => {
+    const p = normalizeProfile({ projects: [{ name: "Yard System", tech: ["Java", "SQL"], bullets: ["Did X", 5] }, { tech: "no name" }, "x"] });
+    expect(p.projects).toEqual([{ name: "Yard System", tech: "Java, SQL", bullets: ["Did X"] }]);
+  });
+  it("drops junk fields", () => {
+    const p = normalizeProfile({ name: 5, skills: ["Postgres", "", 7], experience: [{}, "x", { title: "Dev", bullets: ["a", 1] }], extra: "ignored" });
     expect(p.name).toBe("5");
     expect(p.skills).toEqual(["Postgres"]);
     expect(p.experience).toEqual([{ title: "Dev", company: "", dates: "", bullets: ["a"] }]);

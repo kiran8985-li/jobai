@@ -41,6 +41,13 @@ export function cvBlocks(cv: CvProfile): Block[] {
       for (const b of e.bullets) add({ kind: "bullet", text: b });
     }
   }
+  if (cv.projects.length) {
+    add({ kind: "heading", text: "Projects" });
+    for (const p of cv.projects) {
+      add({ kind: "entry", left: p.name, right: p.tech });
+      for (const b of p.bullets) add({ kind: "bullet", text: b });
+    }
+  }
   if (cv.education.length) {
     add({ kind: "heading", text: "Education" });
     for (const e of cv.education) add({ kind: "entry", left: [e.degree, e.institution].map(clean).filter(Boolean).join(", "), right: e.dates });

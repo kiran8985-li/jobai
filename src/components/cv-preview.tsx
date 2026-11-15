@@ -30,6 +30,16 @@ export function CvPreview({ cv }: { cv: CvProfile }) {
           </ul>
         </div>
       ))}
+      {cv.projects.length > 0 && <p className={h}>Projects</p>}
+      {cv.projects.map((p, i) => (
+        <div key={i} className="mt-2">
+          <p className="font-bold">{p.name}</p>
+          {p.tech && <p className="text-xs text-muted">{p.tech}</p>}
+          <ul className="mt-1 list-disc space-y-0.5 pl-5">
+            {p.bullets.map((b, j) => <li key={j}>{b}</li>)}
+          </ul>
+        </div>
+      ))}
       {cv.education.length > 0 && <p className={h}>Education</p>}
       {cv.education.map((e, i) => (
         <p key={i} className="mt-2">

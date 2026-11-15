@@ -63,16 +63,16 @@ export function validateTailored(candidate: CvProfile, master: CvProfile, job: J
       flags.push(`Removed a job that is not on your master CV: ${short(`${entry.title} at ${entry.company} (${entry.dates})`)}`);
     }
   }
-  const experience = master.experience.map((m) => {
-    const cand = candidate.experience.find((c) => sameEntry(m, c));
+  /** Keeps only bullets that reword a bullet of the SAME job or project; falls back to the master's own. */
+  const pickBullets = (offered: string[] | undefined, own: string[]): string[] => {
     const used = new Set<number>();
     const bullets: string[] = [];
-    for (const raw of cand?.bullets ?? []) {
+    for (const raw of offered ?? []) {
       const bullet = raw.replace(/\s+/g, " ").trim();
       if (!bullet) continue;
       bulletsSeen++;
-      // Each master bullet can back one tailored bullet, and only from the same job.
-      const i = m.bullets.findIndex((mb, idx) => !used.has(idx) && bulletSupportedBy(bullet, mb));
+      // Each master bullet can back one tailored bullet.
+      const i = own.findIndex((mb, idx) => !used.has(idx) && bulletSupportedBy(bullet, mb));
       if (i === -1) {
         bulletsRejected++;
         flags.push(`Removed a bullet your master CV does not support: ${short(bullet)}`);
@@ -81,16 +81,45 @@ export function validateTailored(candidate: CvProfile, master: CvProfile, job: J
       used.add(i);
       bullets.push(bullet);
     }
-    // Nothing usable for this job: keep the master's own bullets rather than an empty entry.
-    return { title: m.title, company: m.company, dates: m.dates, bullets: bullets.length ? bullets : [...m.bullets] };
-  });
+    // Nothing usable: keep the master's own bullets rather than an empty entry.
+    return bullets.length ? bullets : [...own];
+  };
+  const experience = master.experience.map((m) => ({
+    title: m.title,
+    company: m.company,
+    dates: m.dates,
+    bullets: pickBullets(candidate.experience.find((c) => sameEntry(m, c))?.bullets, m.bullets),
+  }));
+
+  // --- projects: only the master's projects, name and tools unchanged. The candidate may reorder them.
+  const sameProject = (a: { name: string }, b: { name: string }) => squash(a.name) === squash(b.name);
+  for (const pr of candidate.projects) {
+    if (!master.projects.some((m) => sameProject(m, pr))) {
+      inventedEntries++;
+      flags.push(`Removed a project that is not on your master CV: ${short(pr.name)}`);
+    }
+  }
+  const projectOrder = [
+    ...candidate.projects.map((c) => master.projects.find((m) => sameProject(m, c))).filter((m): m is CvProfile["projects"][number] => Boolean(m)),
+    ...master.projects,
+  ].filter((m, i, all) => all.indexOf(m) === i);
+  const projects = projectOrder.map((m) => ({
+    name: m.name,
+    tech: m.tech,
+    bullets: pickBullets(candidate.projects.find((c) => sameProject(m, c))?.bullets, m.bullets),
+  }));
 
   // --- skills: only skills on the master, in the master's spelling; the rest follow in master order.
-  const masterByKey = new Map(master.skills.map((s) => [canonical(s), s]));
+  // Matched by exact name first. A known alias ("Postgres" for "PostgreSQL") is accepted only when
+  // it points to a single master skill, so one skill is never swapped for a related one.
+  const byName = new Map(master.skills.map((s) => [s.toLowerCase().trim(), s]));
+  const byFamily = new Map<string, string[]>();
+  for (const s of master.skills) byFamily.set(canonical(s), [...(byFamily.get(canonical(s)) ?? []), s]);
   const skills: string[] = [];
   let skillsRejected = 0;
   for (const s of candidate.skills) {
-    const hit = masterByKey.get(canonical(s));
+    const family = byFamily.get(canonical(s));
+    const hit = byName.get(s.toLowerCase().trim()) ?? (family?.length === 1 ? family[0] : undefined);
     if (!hit) {
       skillsRejected++;
       flags.push(`Removed a skill that is not on your master CV: ${short(s)}`);
@@ -123,6 +152,7 @@ export function validateTailored(candidate: CvProfile, master: CvProfile, job: J
     summary,
     skills,
     experience,
+    projects,
     education: master.education.map((e) => ({ ...e })),
     certifications: [...master.certifications],
     languages: [...master.languages],
@@ -136,7 +166,7 @@ export function validateTailored(candidate: CvProfile, master: CvProfile, job: J
 
 /** Why a rewritten summary cannot be used, or null when it is fine. */
 function summaryProblem(summary: string, master: CvProfile, job: JobContext): string | null {
-  const masterText = [master.headline, master.summary, ...master.skills, ...master.certifications, ...master.education.flatMap((e) => [e.degree, e.institution]), ...master.experience.flatMap((e) => [e.title, e.company, ...e.bullets])].join("\n");
+  const masterText = [master.headline, master.summary, ...master.skills, ...master.certifications, ...master.education.flatMap((e) => [e.degree, e.institution]), ...master.experience.flatMap((e) => [e.title, e.company, ...e.bullets]), ...master.projects.flatMap((pr) => [pr.name, pr.tech, ...pr.bullets])].join("\n");
   const masterNums = new Set(numbers(masterText));
   const badNumber = numbers(summary).find((n) => !masterNums.has(n));
   if (badNumber) return `contained a figure that is not on your CV (${badNumber})`;

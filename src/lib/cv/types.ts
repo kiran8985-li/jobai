@@ -1,7 +1,7 @@
-import { canonical } from "../skills";
-
 export type CvExperience = { title: string; company: string; dates: string; bullets: string[] };
 export type CvEducation = { degree: string; institution: string; dates: string };
+/** A personal, academic or side project: its name, the tools used (free text), and what was done. */
+export type CvProject = { name: string; tech: string; bullets: string[] };
 
 /** The structured CV. The same shape is used for the parsed CV, the master CV and tailored CVs. */
 export type CvProfile = {
@@ -13,6 +13,7 @@ export type CvProfile = {
   summary: string;
   skills: string[];
   experience: CvExperience[];
+  projects: CvProject[];
   education: CvEducation[];
   certifications: string[];
   languages: string[];
@@ -37,13 +38,16 @@ export function normalizeProfile(input: unknown): CvProfile {
     summary: str(p.summary),
     skills: [],
     experience: [],
+    projects: [],
     education: [],
     certifications: strs(p.certifications),
     languages: strs(p.languages),
   };
+  // Exact repeats only. Related skills that share a family (Figma and Wireframing, Git and GitHub)
+  // are different things to an employer and are all kept.
   const seen = new Set<string>();
   for (const s of strs(p.skills)) {
-    const key = canonical(s);
+    const key = s.toLowerCase();
     if (!seen.has(key)) {
       seen.add(key);
       out.skills.push(s);
@@ -54,6 +58,12 @@ export function normalizeProfile(input: unknown): CvProfile {
     if (!e) continue;
     const item = { title: str(e.title), company: str(e.company), dates: str(e.dates), bullets: strs(e.bullets) };
     if (item.title || item.company) out.experience.push(item);
+  }
+  for (const raw of Array.isArray(p.projects) ? p.projects : []) {
+    const e = obj(raw);
+    if (!e) continue;
+    const item = { name: str(e.name), tech: Array.isArray(e.tech) ? strs(e.tech).join(", ") : str(e.tech), bullets: strs(e.bullets) };
+    if (item.name) out.projects.push(item);
   }
   for (const raw of Array.isArray(p.education) ? p.education : []) {
     const e = obj(raw);

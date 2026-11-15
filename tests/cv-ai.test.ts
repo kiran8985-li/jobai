@@ -108,6 +108,15 @@ describe("AI CV parsing", () => {
     expect(r.flags.join("\n")).toMatch(/Removed skill not found in your CV: Kubernetes/);
   });
 
+  it("keeps real projects and drops an invented one", async () => {
+    const cv = sample.replace("Skills\n", "Projects\nParcel Tracker | Python, Docker\n- Built a tracker used by 12 depots\n\nSkills\n");
+    const reply = { ...goodReply, projects: [{ name: "Parcel Tracker", tech: "Python, Docker", bullets: ["Built a tracker used by 12 depots", "Won a national award"] }, { name: "Mars Rover", tech: "Rust", bullets: ["Landed it"] }] };
+    const r = await parseCv(cv, "user-1", fakeDeps(reply).deps);
+    expect(r.profile.projects).toEqual([{ name: "Parcel Tracker", tech: "Python, Docker", bullets: ["Built a tracker used by 12 depots"] }]);
+    expect(r.flags.join("\n")).toMatch(/Removed project not found in your CV: Mars Rover/);
+    expect(r.flags.join("\n")).toMatch(/Won a national award/);
+  });
+
   it("falls back to the heuristic parser when there is no key", async () => {
     const r = await parseCv(sample, "user-1", { provider: null, usage: null, dailyLimit: 200 });
     expect(r).toEqual({ profile: expected, parsedBy: "heuristic", flags: [] });

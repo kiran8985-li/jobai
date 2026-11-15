@@ -24,6 +24,7 @@ export function candidateSummary(cv: CvProfile, extra: { rightToWork?: string; w
     `Skills: ${cv.skills.slice(0, 40).join(", ") || "not given"}`,
     "Work history (most recent first):",
     ...cv.experience.slice(0, 8).map((e) => `- ${e.title || "role"} (${e.dates || "dates not given"})`),
+    ...(cv.projects.length ? [`Projects: ${cv.projects.slice(0, 8).map((p) => (p.tech ? `${p.name} (${p.tech})` : p.name)).join("; ")}`] : []),
     `Qualifications: ${cv.education.map((e) => e.degree).filter(Boolean).join("; ") || "not given"}`,
     `Right to work in the UK: ${extra.rightToWork === "yes" ? "yes" : extra.rightToWork === "yes_sponsorship" ? "needs visa sponsorship" : extra.rightToWork === "no" ? "no" : "not stated"}`,
     `Job types wanted: ${extra.wantedTypes.join(", ") || "any"}`,

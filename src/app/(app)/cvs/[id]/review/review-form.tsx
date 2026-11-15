@@ -74,6 +74,8 @@ export function ReviewForm({ id, initial, approved }: { id: string; initial: CvP
   const set = <K extends keyof CvProfile>(key: K, value: CvProfile[K]) => setP((old) => ({ ...old, [key]: value }));
   const setExp = (i: number, patch: Partial<CvProfile["experience"][number]>) =>
     set("experience", p.experience.map((e, j) => (j === i ? { ...e, ...patch } : e)));
+  const setProj = (i: number, patch: Partial<CvProfile["projects"][number]>) =>
+    set("projects", p.projects.map((e, j) => (j === i ? { ...e, ...patch } : e)));
   const setEdu = (i: number, patch: Partial<CvProfile["education"][number]>) =>
     set("education", p.education.map((e, j) => (j === i ? { ...e, ...patch } : e)));
 
@@ -129,6 +131,28 @@ export function ReviewForm({ id, initial, approved }: { id: string; initial: CvP
           className={`${addButton} mt-4`}
         >
           Add a job
+        </button>
+      </section>
+
+      <section className={card}>
+        <h2 className="text-lg font-bold">Projects</h2>
+        {p.projects.length === 0 && <p className="mt-1 text-sm text-muted">None yet. Add personal, academic or side projects here.</p>}
+        {p.projects.map((e, i) => (
+          <div key={i} className="mt-4 rounded-[12px] border border-line p-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Project name" value={e.name} onChange={(v) => setProj(i, { name: v })} />
+              <Field label="Tools used" value={e.tech} onChange={(v) => setProj(i, { tech: v })} />
+            </div>
+            <div className="mt-4">
+              <ListEditor label="Project bullet" long items={e.bullets} onChange={(v) => setProj(i, { bullets: v })} addLabel="Add a bullet" />
+            </div>
+            <button type="button" onClick={() => set("projects", p.projects.filter((_, j) => j !== i))} className={`${removeButton} mt-3`}>
+              Remove this project
+            </button>
+          </div>
+        ))}
+        <button type="button" onClick={() => set("projects", [...p.projects, { name: "", tech: "", bullets: [] }])} className={`${addButton} mt-4`}>
+          Add a project
         </button>
       </section>
 

@@ -1,5 +1,5 @@
 import { canonical, findSkills } from "../skills";
-import { normalizeProfile, type CvExperience, type CvProfile } from "./types";
+import { normalizeProfile, type CvExperience, type CvProfile, type CvProject } from "./types";
 
 /** Non-AI CV parser: the fallback when the AI is off, over its limit, or fails. */
 
@@ -18,7 +18,7 @@ const SECTION_HEADINGS: Record<string, string[]> = {
   skills: ["skills", "technical skills", "key skills", "core skills", "skills and tools", "competencies", "technologies"],
   certifications: ["certifications", "certificates", "training", "courses", "licences", "licenses"],
   languages: ["languages"],
-  projects: ["projects", "personal projects"],
+  projects: ["projects", "personal projects", "academic projects", "key projects", "selected projects"],
   interests: ["interests", "hobbies", "references"],
 };
 
@@ -141,6 +141,24 @@ function parseEducation(lines: string[]) {
   return out;
 }
 
+/** "Name | Tool, Tool" header lines, each followed by the lines describing that project. */
+function parseProjects(lines: string[]): CvProject[] {
+  const out: CvProject[] = [];
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    const isBullet = BULLET_RE.test(line);
+    const looksLikeHeader = !isBullet && line.length <= 110 && !/[.!?]$/.test(line) && (line.includes("|") || !out.length || line.split(/\s+/).length <= 8);
+    if (looksLikeHeader) {
+      const [name, ...rest] = line.split("|");
+      out.push({ name: strip(name, " ,-–—\t"), tech: rest.join("|").trim(), bullets: [] });
+    } else if (out.length) {
+      out[out.length - 1].bullets.push(line.replace(BULLET_RE, "").trim());
+    }
+  }
+  return out;
+}
+
 function parseList(lines: string[]): string[] {
   const items: string[] = [];
   for (const raw of lines) {
@@ -195,6 +213,7 @@ export function heuristicParse(text: string): CvProfile {
     summary,
     skills,
     experience: parseExperience(sections.experience ?? []),
+    projects: parseProjects(sections.projects ?? []),
     education: parseEducation(sections.education ?? []),
     certifications: parseList(sections.certifications ?? []),
     languages: parseList(sections.languages ?? []),

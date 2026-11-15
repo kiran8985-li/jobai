@@ -8,11 +8,12 @@ import { normalizeProfile, type CvProfile, type ParsedCv } from "./types";
 const AI_SYSTEM =
   "You extract structured data from CVs. Copy only what is written in the CV. " +
   "Never invent employers, dates, qualifications, skills or numbers. Use empty strings or empty lists " +
-  "when something is not present. Personal details have been replaced with placeholders such as [NAME]; " +
+  "when something is not present. Put personal, academic or side projects under projects, not experience. Personal details have been replaced with placeholders such as [NAME]; " +
   "leave name, email, phone and location empty. Reply with one JSON object only.";
 const AI_SCHEMA =
   '{"name":"","email":"","phone":"","location":"","headline":"","summary":"",' +
   '"skills":[""],"experience":[{"title":"","company":"","dates":"","bullets":[""]}],' +
+  '"projects":[{"name":"","tech":"","bullets":[""]}],' +
   '"education":[{"degree":"","institution":"","dates":""}],"certifications":[""],"languages":[""]}';
 
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
@@ -52,6 +53,20 @@ export function verifyAgainstText(profile: CvProfile, text: string): { profile: 
     if (!mentioned(e.dates)) flags.push(`Removed dates not found in your CV for ${e.title}: ${e.dates}`);
   }
 
+  const projects = [];
+  for (const pr of profile.projects) {
+    if (!mentioned(pr.name)) {
+      flags.push(`Removed project not found in your CV: ${pr.name}`);
+      continue;
+    }
+    const bullets = pr.bullets.filter((b) => {
+      if (bulletOk(b)) return true;
+      flags.push(`Removed a bullet not found in your CV: ${b.slice(0, 80)}`);
+      return false;
+    });
+    projects.push({ ...pr, tech: mentioned(pr.tech) ? pr.tech : "", bullets });
+  }
+
   const education = profile.education.filter((e) => {
     if (mentioned(e.institution) && mentioned(e.degree)) return true;
     flags.push(`Removed qualification not found in your CV: ${e.degree} / ${e.institution}`);
@@ -71,7 +86,7 @@ export function verifyAgainstText(profile: CvProfile, text: string): { profile: 
   });
 
   const languages = profile.languages.filter((l) => mentioned(l));
-  return { profile: { ...profile, experience, education, certifications, skills, languages }, flags };
+  return { profile: { ...profile, experience, projects, education, certifications, skills, languages }, flags };
 }
 
 /**
@@ -87,6 +102,8 @@ export async function parseCv(text: string, userId: string | null, deps?: AIDeps
         user: `Return JSON in exactly this shape:\n${AI_SCHEMA}\n\nCV text:\n${redacted.slice(0, 15000)}`,
         purpose: "cv_parse",
         userId,
+        // A full CV comes back as JSON, and some models spend part of the allowance thinking first.
+        maxTokens: 12000,
       },
       deps ?? defaultAIDeps(),
     );

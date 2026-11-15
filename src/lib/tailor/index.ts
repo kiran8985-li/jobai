@@ -13,7 +13,9 @@ const SYSTEM =
   "Use the advert's wording only where the CV bullet already supports it. " +
   'Reply with one JSON object: {"summary": "2-3 sentences, at most 70 words, no name, aimed at this role, using only facts from the CV", ' +
   '"skills": ["skills from the CV skill list only, most relevant to the advert first"], ' +
-  '"experience": [{"id": "E1", "bullets": ["most relevant first"]}]}';
+  '"experience": [{"id": "E1", "bullets": ["most relevant first"]}], ' +
+  '"projects": [{"id": "P1", "bullets": ["most relevant first"]}]} ' +
+  "List the projects most relevant to the advert first. Keep every job and project id you were given.";
 
 /**
  * What the AI sees: no name, contact details, employers, education or dates of birth.
@@ -26,6 +28,7 @@ export function tailorPrompt(master: CvProfile, job: JobForTailor): string {
     summary: master.summary,
     skills: master.skills,
     experience: master.experience.map((e, i) => ({ id: `E${i + 1}`, title: e.title, dates: e.dates, bullets: e.bullets })),
+    projects: master.projects.map((p, i) => ({ id: `P${i + 1}`, name: p.name, tech: p.tech, bullets: p.bullets })),
   };
   return `CV TO TAILOR (JSON)\n${JSON.stringify(cv)}\n\nJOB ADVERT\nTitle: ${job.title}\n${job.description.slice(0, 3500)}`;
 }
@@ -45,7 +48,13 @@ function candidateFrom(reply: unknown, master: CvProfile): CvProfile {
         ? { title: m.title, company: m.company, dates: m.dates, bullets }
         : { title: String(e.title ?? "Unknown role"), company: String(e.company ?? e.id ?? "unknown employer"), dates: String(e.dates ?? ""), bullets };
     });
-  return { ...master, summary: typeof r.summary === "string" ? r.summary : "", skills: strings(r.skills), experience, education: [], certifications: [], languages: [] };
+  const projects = (Array.isArray(r.projects) ? r.projects : [])
+    .filter((e): e is Record<string, unknown> => Boolean(e) && typeof e === "object")
+    .map((e) => {
+      const m = master.projects[Number(/^P(\d+)$/.exec(String(e.id ?? ""))?.[1]) - 1];
+      return { name: m ? m.name : String(e.name ?? e.id ?? "unknown project"), tech: m ? m.tech : "", bullets: strings(e.bullets) };
+    });
+  return { ...master, summary: typeof r.summary === "string" ? r.summary : "", skills: strings(r.skills), experience, projects, education: [], certifications: [], languages: [] };
 }
 
 /**
@@ -58,9 +67,9 @@ export async function tailorCv(master: CvProfile, job: JobForTailor, userId: str
   if (!ai) return fallback([]);
   let reply: unknown;
   try {
-    reply = await chatJson({ system: SYSTEM, user: tailorPrompt(master, job), purpose: "cv_tailor", userId, maxTokens: 2500 }, ai);
+    reply = await chatJson({ system: SYSTEM, user: tailorPrompt(master, job), purpose: "cv_tailor", userId, maxTokens: 12000 }, ai);
   } catch (err) {
-    if (err instanceof AIUnavailable) return fallback([]);
+    if (err instanceof AIUnavailable) return fallback(ai.provider ? ["The AI could not tailor this CV just now, so this version only reorders your own wording."] : []);
     throw err;
   }
   const checked = validateTailored(candidateFrom(reply, master), master, job);

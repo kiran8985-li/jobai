@@ -23,6 +23,8 @@ export function reorderOnly(master: CvProfile, job: JobForTailor): CvProfile {
     ...master,
     skills: stable(master.skills, (s) => (wanted.has(canonical(s)) ? 1 : 0)),
     experience: master.experience.map((e) => ({ ...e, bullets: stable(e.bullets, relevance) })),
+    // Projects most relevant to the advert come first; their wording is untouched.
+    projects: stable(master.projects, (p) => relevance(`${p.name} ${p.tech} ${p.bullets.join(" ")}`)).map((p) => ({ ...p, bullets: stable(p.bullets, relevance) })),
     education: master.education.map((e) => ({ ...e })),
     certifications: [...master.certifications],
     languages: [...master.languages],
