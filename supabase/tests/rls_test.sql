@@ -306,7 +306,36 @@ begin
   update public.cvs set profile_json = '{"name":"Owner"}' where filename = 'master.pdf';
   select count(*) into n from public.matches;
   if n <> 0 then raise exception 'FAIL 12.5f: editing the master CV did not clear stale matches'; end if;
-  select count(*) into n from public.jobs_to_match((select id from public.search_profiles where name = 'Owner search'), 10);
+  -- 12.6 Tailored CVs: user-readable only; unsent ones are cleared when the master CV changes.
+  insert into public.jobs (source, external_id, title, dedupe_key) values ('demo', '2', 'Data Analyst', 'k2');
+  insert into public.tailored_cvs (user_id, job_id, cv_id, content_json)
+    select admin_id, j.id, c.id, '{}' from public.jobs j, public.cvs c where c.filename = 'master.pdf';
+  insert into storage.objects (bucket_id, name) values ('tailored', admin_id::text || '/x.pdf'), ('tailored', alice_id::text || '/y.pdf');
+  perform pg_temp.act_as('authenticated', admin_id);
+  select count(*) into n from public.tailored_cvs;
+  if n <> 2 then raise exception 'FAIL 12.6a: owner sees % tailored CVs', n; end if;
+  select count(*) into n from storage.objects where bucket_id = 'tailored';
+  if n <> 1 then raise exception 'FAIL 12.6b: owner sees % tailored files (should be only their own)', n; end if;
+  begin
+    update public.tailored_cvs set content_json = '{"name":"forged"}';
+    raise exception 'FAIL 12.6c: user changed a tailored CV';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('tailored', admin_id::text || '/planted.pdf');
+    raise exception 'FAIL 12.6d: user wrote into the tailored bucket';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+  end;
+  perform pg_temp.reset();
+  -- The first job already has an application (dry_run, seeded above); the second does not.
+  update public.cvs set profile_json = '{"name":"Owner 2"}' where filename = 'master.pdf';
+  select count(*) into n from public.tailored_cvs where user_id = admin_id;
+  if n <> 1 then raise exception 'FAIL 12.6e: expected only the applied-for tailored CV to remain, got %', n; end if;
+  select count(*) into n from public.tailored_cvs t join public.jobs j on j.id = t.job_id where j.dedupe_key = 'k1';
+  if n <> 1 then raise exception 'FAIL 12.6f: the tailored CV used for an application was removed'; end if;
+
+  select count(*) into n from public.jobs_to_match((select id from public.search_profiles where name = 'Owner search'), 10) where dedupe_key = 'k1';
   if n <> 1 then raise exception 'FAIL 12.5g: jobs_to_match returned % jobs', n; end if;
 
   -- 13. Open mode: anyone can register, no invite needed.

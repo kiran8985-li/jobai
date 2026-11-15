@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   },
   // These read files and load workers at run time, so they must not be bundled.
   serverExternalPackages: ["unpdf", "mammoth"],
+  // The PDF fonts are read from disk at run time, so they must ship with the server code.
+  outputFileTracingIncludes: { "/**": ["./assets/fonts/*.ttf"] },
 };
 
 export default nextConfig;

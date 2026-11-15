@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
+import { Alert } from "@/components/auth-ui";
+import { CvPreview, DownloadButtons, FlagsPanel } from "@/components/cv-preview";
 import { requireUser } from "@/lib/auth";
+import { normalizeProfile } from "@/lib/cv/types";
 import { applyLabel, formatSalary, postedLabel, scoreChip, sourceLabel } from "@/lib/match/display";
 import type { Breakdown, Part } from "@/lib/match/score";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { makeTailoredCv } from "./actions";
 
 export const metadata = { title: "Job – JobPilot AI" };
 
@@ -26,12 +30,22 @@ function Bar({ label, part }: { label: string; part: Part }) {
   );
 }
 
-export default async function JobPage({ params }: { params: Promise<{ id: string }> }) {
+const CV_MESSAGES: Record<string, { kind: "error" | "notice"; text: string }> = {
+  made: { kind: "notice", text: "Your tailored CV is ready. Check it below." },
+  no_master_cv: { kind: "error", text: "Approve a master CV first, then try again." },
+  no_match: { kind: "error", text: "This job is not one of your scored jobs, so a CV cannot be tailored for it." },
+  no_job: { kind: "error", text: "This job is no longer available." },
+  failed: { kind: "error", text: "We could not create the CV just now. Please try again." },
+};
+
+export default async function JobPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cv?: string }> }) {
   const user = await requireUser();
   const id = z.uuid().safeParse((await params).id);
   if (!id.success) notFound();
   const supabase = await createSupabaseServerClient();
-  const [{ data: job }, { data: matches }] = await Promise.all([
+  const cvMsg = CV_MESSAGES[(await searchParams).cv ?? ""];
+  const [{ data: tailored }, { data: job }, { data: matches }] = await Promise.all([
+    supabase.from("tailored_cvs").select("content_json, flags, method, updated_at").eq("job_id", id.data).eq("user_id", user.id).maybeSingle(),
     supabase.from("jobs").select("id, title, company, location, salary_min, salary_max, employment_type, description, apply_url, apply_method, source, posted_at, also_on").eq("id", id.data).maybeSingle(),
     supabase.from("matches").select("score, matching_skills, missing_skills, breakdown, filtered_reason, ai_reviewed, search_profiles(name, min_match)").eq("job_id", id.data).eq("user_id", user.id).order("score", { ascending: false }),
   ]);
@@ -113,9 +127,45 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         </section>
       )}
 
+      <section className={card} aria-labelledby="tailored" id="tailored">
+        <h2 className="text-lg font-bold">Your CV for this job</h2>
+        {cvMsg && <Alert kind={cvMsg.kind}>{cvMsg.text}</Alert>}
+        {tailored ? (
+          <div className="mt-3 space-y-4">
+            <p className="text-sm text-muted">
+              {tailored.method === "ai"
+                ? "Tailored with AI, then fact-checked against your master CV."
+                : "Your own wording, reordered so the most relevant skills and bullets come first. No AI rewording."}{" "}
+              Made on {new Date(tailored.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.
+            </p>
+            <FlagsPanel flags={tailored.flags ?? []} />
+            <CvPreview cv={normalizeProfile(tailored.content_json)} />
+            <div className="flex flex-wrap items-center gap-2">
+              <DownloadButtons base={`/api/cvs/tailored/${job.id}`} />
+              <form action={makeTailoredCv}>
+                <input type="hidden" name="job_id" value={job.id} />
+                <button type="submit" className="flex min-h-11 items-center rounded-[12px] px-4 text-sm font-bold text-accent hover:bg-accent-tint">Make it again</button>
+              </form>
+            </div>
+          </div>
+        ) : match ? (
+          <>
+            <p className="mt-1 text-sm text-muted">
+              We can prepare a version of your master CV for this job: your most relevant skills and bullets first. Nothing is added that is not on your master CV.
+            </p>
+            <form action={makeTailoredCv} className="mt-3">
+              <input type="hidden" name="job_id" value={job.id} />
+              <button type="submit" className="flex min-h-11 items-center rounded-[12px] bg-accent px-5 font-bold text-white hover:bg-accent-hover">Create a tailored CV</button>
+            </form>
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-muted">A tailored CV is only made for jobs that are scored against your searches.</p>
+        )}
+      </section>
+
       <section className={card} aria-labelledby="apply-h">
         <h2 id="apply-h" className="text-lg font-bold">Applying</h2>
-        <p className="mt-1 text-sm text-muted">{applyLabel(job.apply_method)}. Tailored CVs and prepared applications arrive in the next part of JobPilot AI.</p>
+        <p className="mt-1 text-sm text-muted">{applyLabel(job.apply_method)}. Prepared applications arrive in the next part of JobPilot AI.</p>
         {job.apply_url && (
           <a href={job.apply_url} target="_blank" rel="noopener noreferrer nofollow" className="mt-3 inline-flex min-h-11 items-center rounded-[12px] border border-line px-5 font-bold hover:border-accent">
             View the original advert

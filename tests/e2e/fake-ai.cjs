@@ -18,7 +18,21 @@ http
       requests.push({ url: req.url, auth: req.headers.authorization, body });
       // Eligibility checks (matching) get a verdict; everything else gets the CV structure.
       let content = JSON.stringify(reply);
-      if (body.includes("JOB ADVERT")) {
+      if (body.includes("CV TO TAILOR")) {
+        // Tailoring: mostly honest, with one invented skill and one invented bullet slipped in.
+        // For the "Python Developer (Contract)" job the reply is almost all invented, to exercise the fallback.
+        const prompt = JSON.parse(body).messages[1].content;
+        content = /Title: Python Developer \(Contract\)/.test(prompt)
+          ? JSON.stringify({ summary: "World-class architect.", skills: ["Kubernetes", "Rust", "Go"], experience: [{ id: "E9", title: "CTO", company: "Google", bullets: ["Ran everything"] }, { id: "E1", bullets: ["Built a rocket", "Cured a disease"] }] })
+          : JSON.stringify({
+              summary: "Backend developer with 5 years of experience building Python web services and data pipelines.",
+              skills: ["AWS", "Docker", "Kubernetes", "PostgreSQL"],
+              experience: [
+                { id: "E1", bullets: ["Cut AWS costs by 30% by moving batch jobs to Docker on ECS", "Built REST APIs in Python and Flask serving 2 million requests per day", "Launched a blockchain platform used by 9 banks"] },
+                { id: "E2", bullets: ["Automated testing with pytest, cutting release time by 40%", "Developed SQL reporting pipelines in PostgreSQL"] },
+              ],
+            });
+      } else if (body.includes("JOB ADVERT")) {
         content = /Title: Software Developer/.test(JSON.parse(body).messages[1].content)
           ? JSON.stringify({ eligible: false, adjustment: -5, reason: "Advert requires active security clearance." })
           : JSON.stringify({ eligible: true, adjustment: 0, reason: "Level and contract type fit." });
