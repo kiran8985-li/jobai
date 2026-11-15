@@ -3,7 +3,7 @@ import { isAdminPath, isProtectedPath, safeNext } from "@/lib/paths";
 
 describe("route rules", () => {
   it("protects every signed-in and admin area", () => {
-    for (const p of ["/dashboard", "/jobs", "/jobs/123", "/applications", "/cvs", "/auto-apply", "/notifications", "/account", "/onboarding", "/admin", "/admin/users", "/api/admin/invites"]) {
+    for (const p of ["/dashboard", "/jobs", "/jobs/123", "/applications", "/cvs", "/profiles", "/profiles/new", "/auto-apply", "/notifications", "/account", "/onboarding", "/admin", "/admin/users", "/api/admin/invites"]) {
       expect(isProtectedPath(p), p).toBe(true);
     }
   });

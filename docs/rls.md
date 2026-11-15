@@ -9,7 +9,7 @@ bypasses RLS; only the scan, the invite script and admin code (after an `is_admi
 
 | Table | Policy | What a normal user can do |
 | --- | --- | --- |
-| `profiles_user` | `profiles_select_own`, `profiles_update_own` | Read their own row. Change only their own `name`. Cannot change `is_admin`, `is_active` or `ai_consent_at`. |
+| `profiles_user` | `profiles_select_own`, `profiles_update_own` | Read their own row. Change only their own `name` and `auto_apply_paused`. Cannot change `is_admin`, `is_active` or `ai_consent_at`. |
 | `cvs` | `cvs_own`, `cvs_need_consent` | Read, add, change and delete their own CVs. No CV can be added before AI consent is recorded. |
 | `search_profiles` | `search_profiles_own` | Read, add, change and delete their own search profiles. |
 | `screening_answers` | `screening_answers_own` | Read, add, change and delete their own answers. |
@@ -39,12 +39,17 @@ bypasses RLS; only the scan, the invite script and admin code (after an `is_admi
 - **No CV before AI consent.** `record_ai_consent()` stores the timestamp (the first one is kept); the
   `cvs` table and the file bucket both refuse inserts until it exists.
 - **One master CV per user** (unique index on approved CVs); `approve_cv()` swaps it in one step.
-- **Auto-apply needs consent**: `search_profiles` has a check constraint (`auto_apply` requires `consent_at`).
+- **Auto-apply needs consent.** A trigger on `search_profiles` forces `auto_apply` off whenever
+  `consent_at` is empty, so withdrawing consent stops auto-apply in the same write. The database sets
+  the consent time itself; it cannot be backdated or changed. A check constraint backs this up.
+- **Master pause.** `profiles_user.auto_apply_paused` is the user's own switch (the only columns a
+  user can change on their profile row are `name` and this one).
+- **Bounded data.** At most 10 search profiles and 40 screening answers per user.
 - **One application per user per job** (unique constraint), so a re-run can never apply twice.
 
 ## How this is tested
 
 - `npm run test:db` applies the migrations to a throwaway local Postgres and runs
   `supabase/tests/rls_test.sql` (sign-up rules, per-user isolation, admin tables, suspension).
-- `node --env-file=.env.local tests/e2e/auth-flow.cjs` and `tests/e2e/cv-flow.cjs` drive the real pages against a local
+- `node --env-file=.env.local tests/e2e/auth-flow.cjs` and `tests/e2e/cv-flow.cjs` and `tests/e2e/profiles-flow.cjs` drive the real pages against a local
   Supabase (`npx supabase start`). Never run it against a real project: it wipes and creates users.

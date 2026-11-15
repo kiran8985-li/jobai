@@ -244,13 +244,38 @@ begin
   exception when insufficient_privilege then null;
   end;
 
-  -- 12. Auto-apply cannot be on without consent (database constraint).
-  perform pg_temp.reset();
+  -- 12. Auto-apply consent rules hold in the database, for the user's own direct writes too.
+  perform pg_temp.act_as('authenticated', admin_id);
+  update public.search_profiles set auto_apply = true where user_id = admin_id;
+  select auto_apply into ok from public.search_profiles where user_id = admin_id;
+  if ok then raise exception 'FAIL 12a: auto-apply switched on without consent'; end if;
+  update public.search_profiles set consent_at = '2001-01-01', auto_apply = true where user_id = admin_id;
+  select auto_apply and consent_at > now() - interval '1 minute' into ok from public.search_profiles where user_id = admin_id;
+  if not ok then raise exception 'FAIL 12b: consent time was backdated, or auto-apply did not turn on with consent'; end if;
+  update public.search_profiles set consent_at = '2001-01-01' where user_id = admin_id;
+  select consent_at > now() - interval '1 minute' into ok from public.search_profiles where user_id = admin_id;
+  if not ok then raise exception 'FAIL 12c: consent time was changed after it was given'; end if;
+  update public.search_profiles set consent_at = null where user_id = admin_id;
+  select auto_apply into ok from public.search_profiles where user_id = admin_id;
+  if ok then raise exception 'FAIL 12d: withdrawing consent left auto-apply on'; end if;
+  insert into public.search_profiles (user_id, name, auto_apply) values (admin_id, 'sneaky', true);
+  select bool_or(auto_apply) into ok from public.search_profiles where user_id = admin_id;
+  if ok then raise exception 'FAIL 12e: new profile created with auto-apply on and no consent'; end if;
   begin
-    update public.search_profiles set auto_apply = true where user_id = admin_id;
-    raise exception 'FAIL 12: auto-apply switched on without consent';
-  exception when check_violation then null;
+    for n in 1..9 loop
+      insert into public.search_profiles (user_id, name) values (admin_id, 'p' || n);
+    end loop;
+    raise exception 'FAIL 12f: more than 10 search profiles allowed';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
   end;
+  -- Master pause is the user's own switch; admin flag still is not.
+  update public.profiles_user set auto_apply_paused = true where id = admin_id;
+  insert into public.screening_answers (user_id, key, answer) values (admin_id, 'notice_period', '1 month');
+  perform pg_temp.act_as('authenticated', bob_id);
+  select count(*) into n from public.screening_answers;
+  if n <> 0 then raise exception 'FAIL 12g: another user read screening answers'; end if;
+  perform pg_temp.reset();
 
   -- 13. Open mode: anyone can register, no invite needed.
   update public.app_settings set value = 'open' where key = 'signup_mode';

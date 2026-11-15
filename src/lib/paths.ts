@@ -6,6 +6,7 @@ const PROTECTED = [
   "/jobs",
   "/applications",
   "/cvs",
+  "/profiles",
   "/auto-apply",
   "/notifications",
   "/account",

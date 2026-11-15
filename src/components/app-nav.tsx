@@ -11,6 +11,7 @@ export const seekerNav: NavItem[] = [
   { href: "/jobs", label: "Jobs" },
   { href: "/applications", label: "Applications" },
   { href: "/cvs", label: "My CVs" },
+  { href: "/profiles", label: "Job searches" },
   { href: "/auto-apply", label: "Auto-apply" },
   { href: "/notifications", label: "Notifications" },
   { href: "/account", label: "Account" },

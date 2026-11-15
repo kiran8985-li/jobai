@@ -11,12 +11,18 @@ export default async function DashboardPage() {
   const cvs = (await hasAiConsent(supabase, user.id)) ? await listCvs(supabase, user.id) : [];
   const master = cvs.find((c) => c.approved);
   const draft = cvs.find((c) => !c.approved);
+  const { count: searches } = await supabase
+    .from("search_profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
 
-  const next = master
-    ? null
-    : draft
+  const next = !master
+    ? draft
       ? { title: "Review and approve your CV", body: "We have read your CV. Check it and approve it so it can be used.", href: `/cvs/${draft.id}/review`, cta: "Review my CV" }
-      : { title: "Upload your CV", body: "Start by uploading your CV. You check and approve it before anything is used.", href: "/onboarding", cta: "Get started" };
+      : { title: "Upload your CV", body: "Start by uploading your CV. You check and approve it before anything is used.", href: "/onboarding", cta: "Get started" }
+    : !searches
+      ? { title: "Tell us what jobs you want", body: "Add your first search: job titles, locations, salary and limits.", href: "/onboarding/preferences", cta: "Set my preferences" }
+      : null;
 
   return (
     <div className="max-w-3xl">
@@ -38,10 +44,10 @@ export default async function DashboardPage() {
           </>
         ) : (
           <>
-            <p className="font-semibold">Your master CV is ready</p>
+            <p className="font-semibold">You are set up</p>
             <p className="mt-1 text-sm text-muted">
-              Job preferences and matching are the next part of JobPilot AI to arrive. Your matches and applications
-              will appear here.
+              Your master CV and job search are ready. Job matching is the next part of JobPilot AI to arrive; your
+              matches and applications will appear here.
             </p>
           </>
         )}

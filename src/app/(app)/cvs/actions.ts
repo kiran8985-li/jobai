@@ -40,7 +40,12 @@ export async function saveCv(_prev: SaveState, form: FormData): Promise<SaveStat
   const res = await supabase.rpc("approve_cv", { p_cv: id.data });
   if (res.error) return { error: "We could not approve your CV. Please try again." };
   revalidatePath("/cvs");
-  redirect("/cvs?approved=1");
+  // First time through: carry on to job preferences. Afterwards: back to My CVs.
+  const { count } = await supabase
+    .from("search_profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  redirect(count ? "/cvs?approved=1" : "/onboarding/preferences");
 }
 
 export async function deleteCv(form: FormData): Promise<void> {
