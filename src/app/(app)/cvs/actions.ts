@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { matchNowFor } from "@/lib/match";
 import { approvalProblem, parseProfileForm } from "@/lib/cv/schema";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -39,6 +40,7 @@ export async function saveCv(_prev: SaveState, form: FormData): Promise<SaveStat
   }
   const res = await supabase.rpc("approve_cv", { p_cv: id.data });
   if (res.error) return { error: "We could not approve your CV. Please try again." };
+  await matchNowFor(user.id);
   revalidatePath("/cvs");
   // First time through: carry on to job preferences. Afterwards: back to My CVs.
   const { count } = await supabase

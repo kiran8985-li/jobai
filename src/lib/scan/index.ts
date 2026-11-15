@@ -1,5 +1,6 @@
 import "server-only";
 import { env } from "../env";
+import { runConfiguredMatching } from "../match";
 import { createSources } from "../sources/connectors";
 import { createSupabaseAdminClient } from "../supabase/admin";
 import { runScan, type ScanResult } from "./run";
@@ -12,6 +13,7 @@ export function runConfiguredScan(opts: { only?: string; userId?: string } = {})
     store: supabaseScanStore(createSupabaseAdminClient()),
     sources: createSources(e),
     apiMinIntervalMin: e.API_SOURCES_MIN_INTERVAL_MIN,
+    match: async () => (await runConfiguredMatching({ userId: opts.userId, ai: true }))?.newMatches ?? 0,
     ...opts,
   });
 }

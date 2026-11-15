@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { matchNowFor } from "@/lib/match";
 import { MAX_PROFILES, profileFormSchema } from "@/lib/search-profiles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -51,6 +52,8 @@ export async function saveProfile(_prev: ProfileState, form: FormData): Promise<
     const { error } = await supabase.from("search_profiles").insert({ ...parsed.data, user_id: user.id });
     if (error) return { error: "We could not save this search. Please try again.", values: raw };
   }
+  // Score the jobs we already have against this search straight away (keyword scores, no AI).
+  await matchNowFor(user.id);
   revalidatePath("/profiles");
   redirect(form.get("from") === "onboarding" ? "/auto-apply?welcome=1" : "/profiles?saved=1");
 }
@@ -65,6 +68,7 @@ export async function setProfileActive(form: FormData): Promise<void> {
     .update({ is_active: form.get("active") === "true" })
     .eq("id", id.data)
     .eq("user_id", user.id);
+  if (form.get("active") === "true") await matchNowFor(user.id);
   revalidatePath("/profiles");
 }
 

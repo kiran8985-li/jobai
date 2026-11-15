@@ -277,6 +277,38 @@ begin
   if n <> 0 then raise exception 'FAIL 12g: another user read screening answers'; end if;
   perform pg_temp.reset();
 
+  -- 12.5 Matches: server-written, user-readable, cleared when the search or master CV changes.
+  insert into public.cvs (user_id, filename, approved, profile_json) values (admin_id, 'master.pdf', true, '{"name":"O"}');
+  insert into public.matches (user_id, search_profile_id, job_id, score)
+    select admin_id, id, job, 80 from public.search_profiles where user_id = admin_id and name = 'Owner search';
+  perform pg_temp.act_as('authenticated', admin_id);
+  select count(*) into n from public.matches;
+  if n <> 1 then raise exception 'FAIL 12.5a: owner cannot read own match'; end if;
+  begin
+    update public.matches set score = 100;
+    raise exception 'FAIL 12.5b: user changed a match score';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.jobs_to_match((select id from public.search_profiles limit 1), 10);
+    raise exception 'FAIL 12.5c: user called the server-only matching function';
+  exception when insufficient_privilege then null;
+  end;
+  update public.search_profiles set daily_limit = 5 where name = 'Owner search';
+  select count(*) into n from public.matches;
+  if n <> 1 then raise exception 'FAIL 12.5d: changing a limit cleared matches'; end if;
+  update public.search_profiles set roles = array['CTO'] where name = 'Owner search';
+  perform pg_temp.reset();
+  select count(*) into n from public.matches;
+  if n <> 0 then raise exception 'FAIL 12.5e: changing job titles did not clear stale matches'; end if;
+  insert into public.matches (user_id, search_profile_id, job_id, score)
+    select admin_id, id, job, 80 from public.search_profiles where user_id = admin_id and name = 'Owner search';
+  update public.cvs set profile_json = '{"name":"Owner"}' where filename = 'master.pdf';
+  select count(*) into n from public.matches;
+  if n <> 0 then raise exception 'FAIL 12.5f: editing the master CV did not clear stale matches'; end if;
+  select count(*) into n from public.jobs_to_match((select id from public.search_profiles where name = 'Owner search'), 10);
+  if n <> 1 then raise exception 'FAIL 12.5g: jobs_to_match returned % jobs', n; end if;
+
   -- 13. Open mode: anyone can register, no invite needed.
   update public.app_settings set value = 'open' where key = 'signup_mode';
   insert into auth.users (email, encrypted_password) values ('newcomer@example.com', 'x');

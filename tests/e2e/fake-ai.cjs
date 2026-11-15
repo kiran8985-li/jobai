@@ -16,10 +16,17 @@ http
       if (req.url === "/requests") return res.end(JSON.stringify(requests));
       if (req.url === "/reset") return res.end(JSON.stringify({ cleared: requests.splice(0).length }));
       requests.push({ url: req.url, auth: req.headers.authorization, body });
+      // Eligibility checks (matching) get a verdict; everything else gets the CV structure.
+      let content = JSON.stringify(reply);
+      if (body.includes("JOB ADVERT")) {
+        content = /Title: Software Developer/.test(JSON.parse(body).messages[1].content)
+          ? JSON.stringify({ eligible: false, adjustment: -5, reason: "Advert requires active security clearance." })
+          : JSON.stringify({ eligible: true, adjustment: 0, reason: "Level and contract type fit." });
+      }
       res.end(
         JSON.stringify({
           id: "x", object: "chat.completion", model: "fake-model",
-          choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: JSON.stringify(reply) } }],
+          choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content } }],
           usage: { prompt_tokens: 321, completion_tokens: 123, total_tokens: 444 },
         }),
       );

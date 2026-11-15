@@ -13,7 +13,7 @@ bypasses RLS; only the scan, the invite script and admin code (after an `is_admi
 | `cvs` | `cvs_own`, `cvs_need_consent` | Read, add, change and delete their own CVs. No CV can be added before AI consent is recorded. |
 | `search_profiles` | `search_profiles_own` | Read, add, change and delete their own search profiles. |
 | `screening_answers` | `screening_answers_own` | Read, add, change and delete their own answers. |
-| `matches` | `matches_select_own` | Read their own matches. Written by the server only. |
+| `matches` | `matches_select_own` | Read their own matches. Written by the server only, so a score cannot be forged. Cleared automatically when the search's criteria or the master CV change. |
 | `tailored_cvs` | `tailored_cvs_select_own` | Read their own tailored CVs. Written by the server only. |
 | `applications` | `applications_select_own` | Read their own applications. Written by the server only, so an application cannot be forged. |
 | `notifications` | `notifications_select_own`, `notifications_update_own` | Read their own. Change only `is_read`. |
@@ -51,5 +51,5 @@ bypasses RLS; only the scan, the invite script and admin code (after an `is_admi
 
 - `npm run test:db` applies the migrations to a throwaway local Postgres and runs
   `supabase/tests/rls_test.sql` (sign-up rules, per-user isolation, admin tables, suspension).
-- `node --env-file=.env.local tests/e2e/auth-flow.cjs` and `tests/e2e/cv-flow.cjs` and `tests/e2e/profiles-flow.cjs` drive the real pages against a local
+- `node --env-file=.env.local tests/e2e/auth-flow.cjs` and `tests/e2e/cv-flow.cjs`, `tests/e2e/profiles-flow.cjs` and `tests/e2e/jobs-flow.cjs` drive the real pages against a local
   Supabase (`npx supabase start`). Never run it against a real project: it wipes and creates users.

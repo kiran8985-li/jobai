@@ -46,9 +46,14 @@ export default async function DashboardPage() {
           <>
             <p className="font-semibold">You are set up</p>
             <p className="mt-1 text-sm text-muted">
-              Your master CV and job search are ready. Job matching is the next part of JobPilot AI to arrive; your
-              matches and applications will appear here.
+              Your master CV and job search are ready. New jobs are checked every 15 minutes and scored against your CV.
             </p>
+            <Link
+              href="/jobs"
+              className="mt-4 inline-flex min-h-11 items-center rounded-[12px] bg-accent px-5 font-bold text-white hover:bg-accent-hover"
+            >
+              See your jobs
+            </Link>
           </>
         )}
       </div>

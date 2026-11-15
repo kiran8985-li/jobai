@@ -1,7 +1,7 @@
 # The job scan
 
 One scan = fetch jobs from every enabled source → clean → remove duplicates → store in `jobs`.
-(Matching, CV tailoring and applying are added to the same pipeline in later phases.)
+The saved jobs are then scored against every active search (see `docs/matching.md`). CV tailoring and applying are added to the same pipeline in later phases.
 
 ## Running it
 
