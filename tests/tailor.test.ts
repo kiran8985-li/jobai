@@ -307,6 +307,22 @@ describe("PDF and Word files", () => {
     expect((norm(text).match(/Delivered project/g) ?? []).length).toBe(72);
   });
 
+  it("tightens a CV that would just spill onto a third page so it fits on two", async () => {
+    const pagesOf = async (n: number, fit: boolean) => {
+      const cv = clone();
+      cv.experience = Array.from({ length: n }, (_, i) => ({ title: `Role ${i}`, company: `Employer ${i}`, dates: "2020 - 2021", bullets: Array.from({ length: 4 }, (_, j) => `Delivered project ${i}-${j} with a measurable result for the wider business and its customers every quarter`) }));
+      const bytes = await renderCvPdf(cv, { fit });
+      return { pages: (await PDFDocument.load(bytes)).getPageCount(), bytes };
+    };
+    // Find a length that is 3 pages at normal size.
+    let n = 6;
+    while ((await pagesOf(n, false)).pages < 3) n++;
+    const fitted = await pagesOf(n, true);
+    expect(fitted.pages).toBe(2);
+    const { text } = await extractText("cv.pdf", fitted.bytes);
+    expect((text.replace(/\s+/g, " ").match(/Delivered project/g) ?? []).length).toBe(n * 4);
+  });
+
   it("copes with accents, unusual characters, very long words and empty sections", async () => {
     const odd = clone();
     odd.name = "Zoë Łukasiewicz-Çelik";

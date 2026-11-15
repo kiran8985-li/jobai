@@ -7,8 +7,9 @@ import type { CvProfile } from "../cv/types";
 import { cvBlocks } from "./layout";
 
 const A4: [number, number] = [595.28, 841.89];
-const MARGIN = 54;
-const WIDTH = A4[0] - MARGIN * 2;
+const MAX_PAGES = 2;
+// Tried in order until the CV fits on two pages, the usual limit for a UK CV.
+const SCALES = [1, 0.94, 0.88, 0.82];
 const INK = rgb(0.08, 0.07, 0.17);
 const GREY = rgb(0.33, 0.33, 0.4);
 
@@ -49,8 +50,23 @@ function wrap(font: PDFFont, size: number, text: string, width: number): string[
   return lines;
 }
 
-/** Single-column, text-only A4 PDF. Real text (not images), so it can be searched and read by ATS software. */
-export async function renderCvPdf(cv: CvProfile): Promise<Uint8Array> {
+/**
+ * Single-column, text-only A4 PDF. Real text (not images), so it can be searched and read by ATS software.
+ * If the CV would spill onto a third page, the type and spacing are tightened a little (never below
+ * a readable size) to bring it back to two. A CV too long even for that keeps its extra pages.
+ */
+export async function renderCvPdf(cv: CvProfile, opts: { fit?: boolean } = {}): Promise<Uint8Array> {
+  let last: PDFDocument | undefined;
+  for (const scale of opts.fit === false ? [1] : SCALES) {
+    last = await draw(cv, scale);
+    if (last.getPageCount() <= MAX_PAGES) break;
+  }
+  return last!.save();
+}
+
+async function draw(cv: CvProfile, k: number): Promise<PDFDocument> {
+  const MARGIN = Math.max(40, 54 * k);
+  const WIDTH = A4[0] - MARGIN * 2;
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const [regularBytes, boldBytes] = await loadFonts();
@@ -69,7 +85,8 @@ export async function renderCvPdf(cv: CvProfile): Promise<Uint8Array> {
       y = A4[1] - MARGIN;
     }
   };
-  const write = (text: string, font: PDFFont, size: number, opts: { x?: number; width?: number; color?: typeof INK; gap?: number } = {}) => {
+  const write = (text: string, font: PDFFont, baseSize: number, opts: { x?: number; width?: number; color?: typeof INK; gap?: number } = {}) => {
+    const size = baseSize * k;
     const x = opts.x ?? MARGIN;
     const leading = size * 1.38;
     for (const line of wrap(font, size, drawable(font, text), opts.width ?? WIDTH - (x - MARGIN))) {
@@ -77,7 +94,7 @@ export async function renderCvPdf(cv: CvProfile): Promise<Uint8Array> {
       y -= leading;
       page.drawText(line, { x, y, size, font, color: opts.color ?? INK });
     }
-    y -= opts.gap ?? 0;
+    y -= (opts.gap ?? 0) * k;
   };
 
   for (const b of cvBlocks(cv)) {
@@ -85,25 +102,25 @@ export async function renderCvPdf(cv: CvProfile): Promise<Uint8Array> {
     else if (b.kind === "contact") write(b.text, regular, 9.5, { color: GREY });
     else if (b.kind === "headline") write(b.text, regular, 11.5, { gap: 2 });
     else if (b.kind === "heading") {
-      need(40);
-      y -= 12;
+      need(40 * k);
+      y -= 12 * k;
       write(b.text, bold, 12.5);
-      y -= 4;
+      y -= 4 * k;
       page.drawLine({ start: { x: MARGIN, y }, end: { x: MARGIN + WIDTH, y }, thickness: 0.6, color: GREY });
       y -= 2;
     } else if (b.kind === "paragraph") write(b.text, regular, 10, { gap: 2 });
     else if (b.kind === "entry") {
-      need(34);
-      y -= 5;
+      need(34 * k);
+      y -= 5 * k;
       write(b.left, bold, 10.5);
       if (b.right) write(b.right, regular, 9.5, { color: GREY });
       y -= 1;
     } else if (b.kind === "bullet") {
       // Make room for the first line, then put the bullet mark beside it on that page.
-      need(10 * 1.38);
-      page.drawText("•", { x: MARGIN + 3, y: y - 10 * 1.38, size: 10, font: regular, color: INK });
+      need(10 * k * 1.38);
+      page.drawText("•", { x: MARGIN + 3, y: y - 10 * k * 1.38, size: 10 * k, font: regular, color: INK });
       write(b.text, regular, 10, { x: MARGIN + 14, gap: 1.5 });
     }
   }
-  return pdf.save();
+  return pdf;
 }
