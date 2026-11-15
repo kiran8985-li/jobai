@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
-import { themeInitScript } from "@/components/theme-toggle";
+import { themeInitScript } from "@/lib/theme-script";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({

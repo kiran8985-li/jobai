@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "check-env": "node scripts/check-env.mjs",
     "predev": "node scripts/check-env.mjs",
-    "check:secrets": "node scripts/check-client-secrets.mjs"
+    "check:secrets": "node scripts/check-client-secrets.mjs",
+    "prebuild": "node scripts/check-env.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

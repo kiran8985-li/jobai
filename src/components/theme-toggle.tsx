@@ -3,6 +3,14 @@ import { useEffect, useState } from "react";
 
 type Theme = "light" | "dark" | "system";
 
+function read(): Theme {
+  try {
+    const v = localStorage.getItem("theme");
+    if (v === "light" || v === "dark") return v;
+  } catch {}
+  return "system";
+}
+
 function apply(theme: Theme) {
   const dark =
     theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -14,18 +22,10 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   const [theme, setTheme] = useState<Theme>("system");
 
   useEffect(() => {
-    let saved: Theme = "system";
-    try {
-      saved = (localStorage.getItem("theme") as Theme) || "system";
-    } catch {}
-    setTheme(saved);
+    setTheme(read());
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
-      let t: Theme = "system";
-      try {
-        t = (localStorage.getItem("theme") as Theme) || "system";
-      } catch {}
-      if (t === "system") apply("system");
+      if (read() === "system") apply("system");
     };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
@@ -41,18 +41,17 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     apply(t);
   }
 
-  const label = theme === "system" ? "Theme: system" : theme === "light" ? "Theme: light" : "Theme: dark";
+  const name = theme === "system" ? "System" : theme === "light" ? "Light" : "Dark";
+  const label = `Theme: ${name}`;
   return (
     <button
       type="button"
       onClick={next}
       aria-label={`${label}. Click to change.`}
-      className={`min-h-11 rounded-[12px] px-3 text-sm font-semibold transition-colors ${className}`}
+      className={`min-h-11 rounded-[12px] whitespace-nowrap px-3 text-sm font-semibold transition-colors ${className}`}
     >
-      {label}
+      <span className="hidden sm:inline">Theme: </span>
+      {name}
     </button>
   );
 }
-
-/** Inline script run before paint so the page never flashes the wrong theme. */
-export const themeInitScript = `(function(){try{var t=localStorage.getItem('theme')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){if(matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');}})();`;

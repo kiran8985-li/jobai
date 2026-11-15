@@ -32,7 +32,7 @@ yarn-error.log*
 
 # env files: never commit real settings; .env.example is the template
 .env
-.env*.local
+.env.*
 !.env.example
 
 # vercel

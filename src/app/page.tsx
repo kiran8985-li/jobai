@@ -6,17 +6,17 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-        <span className="flex items-center gap-2 text-lg font-extrabold">
+        <span className="flex items-center gap-2 whitespace-nowrap text-lg font-extrabold">
           <span aria-hidden className="grid h-8 w-8 place-items-center rounded-[10px] bg-accent text-sm text-white">
             JP
           </span>
           JobPilot AI
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <ThemeToggle className="text-muted hover:bg-accent-tint" />
           <Link
             href="/login"
-            className="flex min-h-11 items-center rounded-[12px] px-4 text-sm font-semibold text-accent hover:bg-accent-tint"
+            className="flex min-h-11 items-center whitespace-nowrap rounded-[12px] px-3 text-sm font-semibold text-accent hover:bg-accent-tint"
           >
             Log in
           </Link>

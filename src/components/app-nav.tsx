@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
 
 export type NavItem = { href: string; label: string };
@@ -23,6 +23,12 @@ export const seekerNav: NavItem[] = [
 export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
   const items = isAdmin ? [...seekerNav, { href: "/admin", label: "Admin" }] : seekerNav;
 
   const links = (
@@ -98,7 +104,7 @@ export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
 
 function Brand() {
   return (
-    <Link href="/" className="flex min-h-11 items-center gap-2 text-lg font-extrabold text-white">
+    <Link href="/" className="flex min-h-11 items-center gap-2 whitespace-nowrap text-lg font-extrabold text-white">
       <span aria-hidden className="grid h-8 w-8 place-items-center rounded-[10px] bg-[#6C4DFF] text-sm">
         JP
       </span>
