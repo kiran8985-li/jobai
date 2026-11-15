@@ -152,18 +152,18 @@ export function lever(companyList: string | undefined): JobSource {
 }
 
 const DEMO_ROWS: [string, string, string, number, number, string, string, string][] = [
-  ["Python Developer", "Fernhill Software", "Manchester", 45000, 60000, "permanent", "python flask sql postgresql docker aws git agile rest api testing", "careers@fernhill.example.com"],
-  ["Senior Backend Engineer", "Calder Payments", "London", 70000, 90000, "permanent", "python django postgresql kubernetes aws terraform ci/cd microservices", "jobs@calder.example.com"],
-  ["Data Analyst", "Harbourview Retail", "Leeds", 32000, 40000, "permanent", "sql excel power bi tableau data analysis stakeholder management", ""],
-  ["Junior Web Developer", "Pixelmill Studio", "Remote", 28000, 34000, "permanent", "javascript html css react git agile", "hello@pixelmill.example.com"],
-  ["DevOps Engineer", "Stonebridge Cloud", "Birmingham", 55000, 70000, "permanent", "aws docker kubernetes terraform linux ci/cd python", ""],
-  ["Software Developer", "Wrenfield Health", "Manchester", 40000, 52000, "permanent", "python sql git agile testing rest api postgresql", "recruit@wrenfield.example.com"],
-  ["Customer Support Advisor", "Bluebird Energy", "Glasgow", 24000, 27000, "permanent", "customer service communication microsoft office", "jobs@bluebird.example.com"],
-  ["Accounts Assistant", "Marsh & Co", "Bristol", 25000, 29000, "permanent", "accounting excel sage xero bookkeeping", ""],
-  ["Machine Learning Engineer", "Quanta Labs", "Cambridge", 65000, 85000, "permanent", "python machine learning pytorch tensorflow pandas numpy sql aws", ""],
-  ["Python Developer (Contract)", "Redgate Media", "Manchester", 400, 500, "contract", "python flask aws docker sql", "contracts@redgate.example.com"],
-  ["Project Manager", "Larkspur Construction", "Sheffield", 48000, 58000, "permanent", "project management stakeholder management agile jira", ""],
-  ["QA Test Engineer", "Ironside Games", "Remote", 35000, 45000, "permanent", "testing selenium python jira agile", "qa-jobs@ironside.example.com"],
+  ["Python Developer", "Fernhill Software", "Manchester", 45000, 60000, "permanent", "python, flask, sql, postgresql, docker, aws, git, agile, rest api, testing", "careers@fernhill.example.com"],
+  ["Senior Backend Engineer", "Calder Payments", "London", 70000, 90000, "permanent", "python, django, postgresql, kubernetes, aws, terraform, ci/cd, microservices", "jobs@calder.example.com"],
+  ["Data Analyst", "Harbourview Retail", "Leeds", 32000, 40000, "permanent", "sql, excel, power bi, tableau, data analysis, stakeholder management", ""],
+  ["Junior Web Developer", "Pixelmill Studio", "Remote", 28000, 34000, "permanent", "javascript, html, css, react, git, agile", "hello@pixelmill.example.com"],
+  ["DevOps Engineer", "Stonebridge Cloud", "Birmingham", 55000, 70000, "permanent", "aws, docker, kubernetes, terraform, linux, ci/cd, python", ""],
+  ["Software Developer", "Wrenfield Health", "Manchester", 40000, 52000, "permanent", "python, sql, git, agile, testing, rest api, postgresql", "recruit@wrenfield.example.com"],
+  ["Customer Support Advisor", "Bluebird Energy", "Glasgow", 24000, 27000, "permanent", "customer service, communication, microsoft office", "jobs@bluebird.example.com"],
+  ["Accounts Assistant", "Marsh & Co", "Bristol", 25000, 29000, "permanent", "accounting, excel, sage, xero, bookkeeping", ""],
+  ["Machine Learning Engineer", "Quanta Labs", "Cambridge", 65000, 85000, "permanent", "python, machine learning, pytorch, tensorflow, pandas, numpy, sql, aws", ""],
+  ["Python Developer (Contract)", "Redgate Media", "Manchester", 400, 500, "contract", "python, flask, aws, docker, sql", "contracts@redgate.example.com"],
+  ["Project Manager", "Larkspur Construction", "Sheffield", 48000, 58000, "permanent", "project management, stakeholder management, agile, jira", ""],
+  ["QA Test Engineer", "Ironside Games", "Remote", 35000, 45000, "permanent", "testing, selenium, python, jira, agile", "qa-jobs@ironside.example.com"],
 ];
 // Questions a form would ask; used later to exercise the skip-unknown-or-sensitive-question rule.
 const DEMO_QUESTIONS: Record<string, string[]> = {
@@ -188,7 +188,7 @@ export function demo(enabled: boolean, now: () => number = Date.now): JobSource 
       const jobs = DEMO_ROWS.map(([title, company, location, min, max, type, skills, email], i) =>
         makeJob({
           source: "demo", external_id: `demo-${i}`, title, company, location, salary_min: min, salary_max: max, employment_type: type,
-          description: `[Demo vacancy] ${title} at ${company}. We are looking for someone with experience in: ${skills.split(" ").join(", ")}. Please send your CV and a short cover note.`,
+          description: `[Demo vacancy] ${title} at ${company}. We are looking for someone with experience in: ${skills}. Please send your CV and a short cover note.`,
           apply_url: `https://example.com/jobs/${i}`, apply_email: email, questions: DEMO_QUESTIONS[title] ?? [],
           posted_at: new Date(base - i * 5 * 3_600_000).toISOString(),
         }),
