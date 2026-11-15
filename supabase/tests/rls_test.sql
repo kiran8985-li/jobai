@@ -106,7 +106,42 @@ begin
 
   -- 5. Alice (verified, normal user) sees only her own rows.
   perform pg_temp.act_as('authenticated', alice_id);
+  -- 5.0 No CV row or file before AI consent; consent keeps its first timestamp.
+  begin
+    insert into public.cvs (user_id, filename) values (alice_id, 'alice.pdf');
+    raise exception 'FAIL 5.0a: CV stored before consent';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+  end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('cvs', alice_id::text || '/a.pdf');
+    raise exception 'FAIL 5.0b: CV file stored before consent';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+  end;
+  perform public.record_ai_consent();
+  if public.record_ai_consent() is null then raise exception 'FAIL 5.0c: consent not recorded'; end if;
   insert into public.cvs (user_id, filename) values (alice_id, 'alice.pdf');
+  insert into storage.objects (bucket_id, name) values ('cvs', alice_id::text || '/a.pdf');
+  begin
+    insert into storage.objects (bucket_id, name) values ('cvs', admin_id::text || '/planted.pdf');
+    raise exception 'FAIL 5.0d: file written into another user''s folder';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+  end;
+  -- 5.1 Only one master CV at a time; approving another swaps it.
+  insert into public.cvs (user_id, filename) values (alice_id, 'alice2.pdf');
+  perform public.approve_cv((select id from public.cvs where filename = 'alice.pdf'));
+  perform public.approve_cv((select id from public.cvs where filename = 'alice2.pdf'));
+  select count(*) into n from public.cvs where approved;
+  if n <> 1 then raise exception 'FAIL 5.1a: % master CVs', n; end if;
+  begin
+    perform public.approve_cv((select id from public.cvs where filename = 'owner.pdf'));
+    raise exception 'FAIL 5.1b: approved another user''s CV';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+  end;
+  delete from public.cvs where filename = 'alice2.pdf';
   select count(*) into n from public.cvs;
   if n <> 1 then raise exception 'FAIL 5a: alice sees % cvs', n; end if;
   select count(*) into n from public.search_profiles;

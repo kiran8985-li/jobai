@@ -5,7 +5,7 @@ Do these once, in order.
 ## 1. Create the tables
 
 Supabase dashboard → SQL Editor. Paste and run each file in `supabase/migrations/`, in name order
-(`...01_schema.sql`, `...02_auth.sql`, `...03_rls.sql`). Or, with the Supabase CLI:
+(`...01_schema.sql`, `...02_auth.sql`, `...03_rls.sql`, `...04_cv_upload.sql`). Or, with the Supabase CLI:
 `npx supabase link --project-ref <your-ref>` then `npx supabase db push`.
 
 ## 2. Check the Auth settings (Authentication → Sign In / Providers)

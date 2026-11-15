@@ -1,0 +1,52 @@
+{
+  "name": "Priya Shah",
+  "email": "priya.shah@example.com",
+  "phone": "07700 900123",
+  "location": "Manchester, UK",
+  "headline": "Software Developer",
+  "summary": "Backend developer with 5 years of experience building Python web services and data pipelines.",
+  "skills": [
+    "Python",
+    "Flask",
+    "SQL",
+    "PostgreSQL",
+    "Docker",
+    "AWS",
+    "Git",
+    "Agile",
+    "rest apis",
+    "testing"
+  ],
+  "experience": [
+    {
+      "title": "Senior Software Developer",
+      "company": "Northwind Digital Ltd",
+      "dates": "Mar 2021 - Present",
+      "bullets": [
+        "Built REST APIs in Python and Flask serving 2 million requests per day",
+        "Reduced AWS costs by 30% by moving batch jobs to Docker on ECS",
+        "Mentored 3 junior developers"
+      ]
+    },
+    {
+      "title": "Software Developer",
+      "company": "Brightside Analytics",
+      "dates": "Jun 2018 - Feb 2021",
+      "bullets": [
+        "Developed SQL reporting pipelines in PostgreSQL",
+        "Automated testing with pytest, cutting release time by 40%"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "BSc Computer Science",
+      "institution": "University of Leeds",
+      "dates": "2014 - 2017"
+    }
+  ],
+  "certifications": [
+    "AWS Certified Cloud Practitioner"
+  ],
+  "languages": []
+}

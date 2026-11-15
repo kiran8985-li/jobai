@@ -10,7 +10,7 @@ bypasses RLS; only the scan, the invite script and admin code (after an `is_admi
 | Table | Policy | What a normal user can do |
 | --- | --- | --- |
 | `profiles_user` | `profiles_select_own`, `profiles_update_own` | Read their own row. Change only their own `name`. Cannot change `is_admin`, `is_active` or `ai_consent_at`. |
-| `cvs` | `cvs_own` | Read, add, change and delete their own CVs. |
+| `cvs` | `cvs_own`, `cvs_need_consent` | Read, add, change and delete their own CVs. No CV can be added before AI consent is recorded. |
 | `search_profiles` | `search_profiles_own` | Read, add, change and delete their own search profiles. |
 | `screening_answers` | `screening_answers_own` | Read, add, change and delete their own answers. |
 | `matches` | `matches_select_own` | Read their own matches. Written by the server only. |
@@ -18,6 +18,12 @@ bypasses RLS; only the scan, the invite script and admin code (after an `is_admi
 | `applications` | `applications_select_own` | Read their own applications. Written by the server only, so an application cannot be forged. |
 | `notifications` | `notifications_select_own`, `notifications_update_own` | Read their own. Change only `is_read`. |
 | `jobs` | `jobs_select_active` | Any active user can read the shared job catalogue. Written by the scan only. |
+
+## CV files (Supabase Storage, private bucket `cvs`)
+
+| Policy | What a normal user can do |
+| --- | --- |
+| `cvs_files_select_own`, `cvs_files_insert_own`, `cvs_files_delete_own` | Read, add and delete files only inside their own folder (`<user id>/...`). Adding a file needs AI consent. Files are limited to 5 MB and to PDF, Word (.docx) and plain text. |
 
 ## Admin-only tables (no policies, no privileges: closed to normal users)
 
@@ -30,6 +36,9 @@ bypasses RLS; only the scan, the invite script and admin code (after an `is_admi
   someone calls Supabase Auth directly and skips the app. `SIGNUP_MODE=open` turns the check off.
 - **First account is the admin**; every later account is a normal user.
 - **Unverified or suspended accounts read and write nothing** (every policy calls `is_active_user()`).
+- **No CV before AI consent.** `record_ai_consent()` stores the timestamp (the first one is kept); the
+  `cvs` table and the file bucket both refuse inserts until it exists.
+- **One master CV per user** (unique index on approved CVs); `approve_cv()` swaps it in one step.
 - **Auto-apply needs consent**: `search_profiles` has a check constraint (`auto_apply` requires `consent_at`).
 - **One application per user per job** (unique constraint), so a re-run can never apply twice.
 
@@ -37,5 +46,5 @@ bypasses RLS; only the scan, the invite script and admin code (after an `is_admi
 
 - `npm run test:db` applies the migrations to a throwaway local Postgres and runs
   `supabase/tests/rls_test.sql` (sign-up rules, per-user isolation, admin tables, suspension).
-- `node --env-file=.env.local tests/e2e/auth-flow.cjs` drives the real pages against a local
+- `node --env-file=.env.local tests/e2e/auth-flow.cjs` and `tests/e2e/cv-flow.cjs` drive the real pages against a local
   Supabase (`npx supabase start`). Never run it against a real project: it wipes and creates users.
