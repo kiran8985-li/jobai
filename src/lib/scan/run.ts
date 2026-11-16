@@ -5,7 +5,7 @@ import { buildQueries, pickApiQueries } from "./queries";
 import type { ScanStore } from "./store";
 
 export type SourceOutcome = { name: string; state: "ran" | "failed" | "disabled" | "not_configured" | "not_due" | "no_searches"; count: number; error: string | null };
-export type ScanResult = { status: "done" | "already_running"; runId: number | null; newJobs: number; newMatches: number; totalFetched: number; sources: SourceOutcome[]; matchError?: string };
+export type ScanResult = { status: "done" | "already_running"; runId: number | null; newJobs: number; newMatches: number; applications: number; totalFetched: number; sources: SourceOutcome[]; matchError?: string; applyNote?: string };
 
 export type ScanOptions = {
   store: ScanStore;
@@ -18,15 +18,15 @@ export type ScanOptions = {
   /** Scan only for this user's search profiles ("Run scan now" for a signed-in user). */
   userId?: string;
   httpFor?: (source: JobSource) => Http;
-  /** Runs after jobs are saved: scores them against the searches and returns how many new matches. */
-  match?: () => Promise<number>;
+  /** Runs after jobs are saved: scores, tailors and applies. Returns the counts for the run record. */
+  match?: () => Promise<{ newMatches: number; applications: number; applyNote?: string }>;
 };
 
 /**
  * One scan: fetch from every enabled source → normalise → deduplicate → store.
  * One failing source never stops the others. Safe to run repeatedly: jobs are keyed on
  * dedupe_key, so a second run updates rows instead of adding duplicates.
- * Then scores the jobs against every active search (`match`). Tailoring and applying come in later phases.
+ * Then (`match`) scores the jobs against every active search, tailors a CV for each match and applies.
  */
 export async function runScan(opts: ScanOptions): Promise<ScanResult> {
   const { store, sources } = opts;
@@ -35,7 +35,7 @@ export async function runScan(opts: ScanOptions): Promise<ScanResult> {
   const iso = () => new Date(now()).toISOString();
 
   const runId = await store.startRun(iso());
-  if (runId === null) return { status: "already_running", runId: null, newJobs: 0, newMatches: 0, totalFetched: 0, sources: [] };
+  if (runId === null) return { status: "already_running", runId: null, newJobs: 0, newMatches: 0, applications: 0, totalFetched: 0, sources: [] };
 
   let newJobs = 0;
   let totalFetched = 0;
@@ -90,15 +90,17 @@ export async function runScan(opts: ScanOptions): Promise<ScanResult> {
   }
   // Matching problems are recorded but never undo the jobs that were saved.
   let newMatches = 0;
+  let applications = 0;
   let matchError: string | undefined;
+  let applyNote: string | undefined;
   if (!fatal && opts.match) {
     try {
-      newMatches = await opts.match();
+      ({ newMatches, applications, applyNote } = await opts.match());
     } catch {
       matchError = "Matching failed";
     }
   }
-  await store.finishRun(runId, { finished_at: iso(), new_jobs: newJobs, new_matches: newMatches, error: fatal ?? matchError ?? null });
+  await store.finishRun(runId, { finished_at: iso(), new_jobs: newJobs, new_matches: newMatches, applications, error: fatal ?? matchError ?? applyNote ?? null });
   if (fatal) throw new Error(fatal);
-  return { status: "done", runId, newJobs, newMatches, totalFetched, sources: outcomes, ...(matchError ? { matchError } : {}) };
+  return { status: "done", runId, newJobs, newMatches, applications, totalFetched, sources: outcomes, ...(matchError ? { matchError } : {}), ...(applyNote ? { applyNote } : {}) };
 }

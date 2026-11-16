@@ -9,7 +9,8 @@ async function main() {
     console.log("Another scan is still running. Try again in a few minutes.");
     return;
   }
-  console.log(`Scan #${result.runId} finished: ${result.totalFetched} jobs fetched, ${result.newJobs} new, ${result.newMatches} new matches.`);
+  console.log(`Scan #${result.runId} finished: ${result.totalFetched} jobs fetched, ${result.newJobs} new, ${result.newMatches} new matches, ${result.applications} applications prepared or sent.`);
+  if (result.applyNote) console.log(`  WARNING: ${result.applyNote}`);
   if (result.matchError) console.log(`  WARNING: ${result.matchError}`);
   const labels: Record<string, string> = {
     ran: "ok", failed: "FAILED", disabled: "switched off", not_configured: "not set up (no key)", not_due: "not due yet", no_searches: "skipped (no searches yet)",

@@ -6,7 +6,7 @@ export type SourceStatus = { name: string; enabled: boolean; last_run: string | 
 export interface ScanStore {
   /** Returns null when another scan is still running. */
   startRun(nowIso: string): Promise<number | null>;
-  finishRun(id: number, result: { finished_at: string; new_jobs: number; new_matches: number; error: string | null }): Promise<void>;
+  finishRun(id: number, result: { finished_at: string; new_jobs: number; new_matches: number; applications: number; error: string | null }): Promise<void>;
   getSourceStatus(): Promise<SourceStatus[]>;
   saveSourceStatus(name: string, patch: Partial<Omit<SourceStatus, "name">>): Promise<void>;
   /** Search profiles to scan for. With `userId`, only that user's. */
@@ -19,12 +19,12 @@ export interface ScanStore {
 export function memoryStore(init: { profiles?: { roles: string[]; locations: string[] }[]; status?: SourceStatus[] } = {}) {
   const jobs = new Map<string, NormalizedJob>();
   const status = new Map<string, SourceStatus>((init.status ?? []).map((s) => [s.name, s]));
-  const runs: { id: number; started_at: string; finished_at: string | null; new_jobs: number; new_matches: number; error: string | null }[] = [];
+  const runs: { id: number; started_at: string; finished_at: string | null; new_jobs: number; new_matches: number; applications: number; error: string | null }[] = [];
   const store: ScanStore = {
     async startRun(nowIso) {
       const open = runs.find((r) => !r.finished_at && Date.parse(nowIso) - Date.parse(r.started_at) < 10 * 60_000);
       if (open) return null;
-      runs.push({ id: runs.length + 1, started_at: nowIso, finished_at: null, new_jobs: 0, new_matches: 0, error: null });
+      runs.push({ id: runs.length + 1, started_at: nowIso, finished_at: null, new_jobs: 0, new_matches: 0, applications: 0, error: null });
       return runs.length;
     },
     async finishRun(id, result) {

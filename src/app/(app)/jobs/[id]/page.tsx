@@ -8,7 +8,8 @@ import { normalizeProfile } from "@/lib/cv/types";
 import { applyLabel, formatSalary, postedLabel, scoreChip, sourceLabel } from "@/lib/match/display";
 import type { Breakdown, Part } from "@/lib/match/score";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { makeTailoredCv } from "./actions";
+import { StatusChip } from "@/components/status-chip";
+import { makeTailoredCv, markApplied, retryApplication } from "./actions";
 
 export const metadata = { title: "Job – JobPilot AI" };
 
@@ -30,6 +31,95 @@ function Bar({ label, part }: { label: string; part: Part }) {
   );
 }
 
+type App = { status: string; method: string | null; sent_at: string | null; created_at: string; detail: Detail };
+type Detail = {
+  email?: { to: string; subject: string; body: string; attachmentName: string } | null;
+  answers?: { question: string; answer: string }[];
+  unanswered?: string[];
+  skip_reason?: string;
+  note?: string;
+  why?: string;
+  error?: string;
+  marked_applied_by_user?: boolean;
+};
+const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const btn = "flex min-h-11 items-center rounded-[12px] px-5 text-sm font-bold";
+
+/** Says clearly whether the application was sent, is waiting for the user, or was skipped, and what to do. */
+function ApplyPanel({ application, job }: { application: App | null; job: { id: string; apply_url: string; apply_method: string } }) {
+  const advert = job.apply_url ? (
+    <a href={job.apply_url} target="_blank" rel="noopener noreferrer nofollow" className={`${btn} border border-line hover:border-accent`}>
+      {application ? "Open the advert to apply" : "View the original advert"}
+    </a>
+  ) : null;
+  if (!application) {
+    return (
+      <>
+        <p className="mt-1 text-sm text-muted">
+          {applyLabel(job.apply_method)}. No application has been prepared for this job yet. One is prepared for each match once its CV is ready.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">{advert}</div>
+      </>
+    );
+  }
+  const d = application.detail ?? {};
+  const act = (action: (f: FormData) => Promise<void>, label: string, cls: string) => (
+    <form action={action}>
+      <input type="hidden" name="job_id" value={job.id} />
+      <button type="submit" className={`${btn} ${cls}`}>{label}</button>
+    </form>
+  );
+  const markButton = act(markApplied, "Mark as applied", "bg-accent text-white hover:bg-accent-hover");
+  const status = application.status;
+  return (
+    <div className="mt-2 space-y-3 text-sm">
+      {status === "sent" && (
+        <p>
+          <strong>{d.marked_applied_by_user ? "You marked this as applied" : "Sent for you by email"}</strong>
+          {application.sent_at ? ` on ${when(application.sent_at)}` : ""}. {d.marked_applied_by_user ? "" : "Replies go to your own email address."}
+        </p>
+      )}
+      {(status === "dry_run" || status === "prepared") && (
+        <p><strong>{status === "dry_run" ? "Prepared, not sent." : "Prepared, but sending did not finish."}</strong> {d.note ?? "It was not sent automatically. You can apply yourself with the details below."}</p>
+      )}
+      {status === "manual" && (
+        <p><strong>Waiting for you.</strong> {d.why ?? ""} Your CV for this job is ready above: download it, apply, then mark it as applied.</p>
+      )}
+      {status === "skipped" && <p><strong>Not applied for.</strong> {d.skip_reason}</p>}
+      {status === "failed" && <p><strong>Sending failed{d.error ? ` (${d.error})` : ""}.</strong> You can apply yourself with the details below, or try again.</p>}
+
+      {(d.unanswered?.length ?? 0) > 0 && status !== "skipped" && (
+        <p className="text-muted">This job also asks: {d.unanswered!.join("; ")}. You will need to answer that yourself.</p>
+      )}
+      {(d.answers?.length ?? 0) > 0 && (
+        <div>
+          <p className="font-semibold">Your saved answers for this job</p>
+          <ul className="mt-1 list-disc pl-5">{d.answers!.map((a, i) => <li key={i}>{a.question}: {a.answer}</li>)}</ul>
+        </div>
+      )}
+      {d.email && (
+        <details className="rounded-[12px] border border-line p-3" open={status === "dry_run"}>
+          <summary className="cursor-pointer font-semibold">{status === "sent" && !d.marked_applied_by_user ? "The email that was sent" : "The prepared email"}</summary>
+          <dl className="mt-2 space-y-1">
+            <div><dt className="inline text-muted">To: </dt><dd className="inline break-all">{d.email.to}</dd></div>
+            <div><dt className="inline text-muted">Subject: </dt><dd className="inline">{d.email.subject}</dd></div>
+            <div><dt className="inline text-muted">Attached: </dt><dd className="inline break-all">{d.email.attachmentName}</dd></div>
+          </dl>
+          <p className="mt-2 whitespace-pre-line break-words rounded-[10px] bg-page p-3">{d.email.body}</p>
+        </details>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {status !== "sent" && advert}
+        {status !== "sent" && markButton}
+        {(status === "skipped" || status === "failed") && act(retryApplication, "Try again", "border border-line hover:border-accent")}
+        {status === "skipped" && (
+          <Link href="/auto-apply" className={`${btn} text-accent hover:bg-accent-tint`}>Add the answer</Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const CV_MESSAGES: Record<string, { kind: "error" | "notice"; text: string }> = {
   made: { kind: "notice", text: "Your tailored CV is ready. Check it below." },
   no_master_cv: { kind: "error", text: "Approve a master CV first, then try again." },
@@ -38,13 +128,15 @@ const CV_MESSAGES: Record<string, { kind: "error" | "notice"; text: string }> = 
   failed: { kind: "error", text: "We could not create the CV just now. Please try again." },
 };
 
-export default async function JobPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cv?: string }> }) {
+export default async function JobPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cv?: string; apply?: string }> }) {
   const user = await requireUser();
   const id = z.uuid().safeParse((await params).id);
   if (!id.success) notFound();
   const supabase = await createSupabaseServerClient();
-  const cvMsg = CV_MESSAGES[(await searchParams).cv ?? ""];
-  const [{ data: tailored }, { data: job }, { data: matches }] = await Promise.all([
+  const sp = await searchParams;
+  const cvMsg = CV_MESSAGES[sp.cv ?? ""];
+  const [{ data: application }, { data: tailored }, { data: job }, { data: matches }] = await Promise.all([
+    supabase.from("applications").select("status, method, detail, sent_at, created_at").eq("job_id", id.data).eq("user_id", user.id).maybeSingle(),
     supabase.from("tailored_cvs").select("content_json, flags, method, updated_at").eq("job_id", id.data).eq("user_id", user.id).maybeSingle(),
     supabase.from("jobs").select("id, title, company, location, salary_min, salary_max, employment_type, description, apply_url, apply_method, source, posted_at, also_on").eq("id", id.data).maybeSingle(),
     supabase.from("matches").select("score, matching_skills, missing_skills, breakdown, filtered_reason, ai_reviewed, search_profiles(name, min_match)").eq("job_id", id.data).eq("user_id", user.id).order("score", { ascending: false }),
@@ -163,14 +255,13 @@ export default async function JobPage({ params, searchParams }: { params: Promis
         )}
       </section>
 
-      <section className={card} aria-labelledby="apply-h">
-        <h2 id="apply-h" className="text-lg font-bold">Applying</h2>
-        <p className="mt-1 text-sm text-muted">{applyLabel(job.apply_method)}. Prepared applications arrive in the next part of JobPilot AI.</p>
-        {job.apply_url && (
-          <a href={job.apply_url} target="_blank" rel="noopener noreferrer nofollow" className="mt-3 inline-flex min-h-11 items-center rounded-[12px] border border-line px-5 font-bold hover:border-accent">
-            View the original advert
-          </a>
-        )}
+      <section className={card} aria-labelledby="apply-h" id="apply">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="apply-h" className="text-lg font-bold">Applying</h2>
+          {application && <StatusChip status={application.status} />}
+        </div>
+        {sp.apply === "retry" && !application && <Alert kind="notice">Cleared. This job will be looked at again at the next check.</Alert>}
+        <ApplyPanel application={application as App | null} job={job} />
       </section>
 
       <section className={card} aria-labelledby="desc-h">

@@ -1,7 +1,7 @@
 # The job scan
 
 One scan = fetch jobs from every enabled source → clean → remove duplicates → store in `jobs`.
-The saved jobs are then scored against every active search (see `docs/matching.md`). A tailored CV is then prepared for each new match (see `docs/tailoring.md`). Applying is added to the same pipeline in the next phase.
+The saved jobs are then scored against every active search (see `docs/matching.md`). A tailored CV is then prepared for each new match (see `docs/tailoring.md`). Each match is then applied for, prepared for the user, or skipped (see `docs/applying.md`).
 
 ## Running it
 
