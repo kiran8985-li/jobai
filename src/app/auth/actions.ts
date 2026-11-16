@@ -46,6 +46,15 @@ export async function login(_prev: FormState, form: FormData): Promise<FormState
     // Same message for a wrong password and an unknown email, so accounts cannot be probed.
     return { error: "The email or password is not right.", values };
   }
+  // A suspended account is turned away here with a clear reason, not just bounced back to this page.
+  const { data: auth } = await supabase.auth.getUser();
+  if (auth.user) {
+    const { data: profile } = await supabase.from("profiles_user").select("is_active").eq("id", auth.user.id).maybeSingle();
+    if (profile && !profile.is_active) {
+      await supabase.auth.signOut();
+      return { error: "This account has been suspended. Contact the site owner.", values };
+    }
+  }
   redirect(safeNext(form.get("next")?.toString()));
 }
 

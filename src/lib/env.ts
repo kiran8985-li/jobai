@@ -51,6 +51,16 @@ export const serverEnvSchema = publicEnvSchema.extend({
     .transform((v) => (v && v.trim() ? v.trim() : "https://api.deepseek.com"))
     .pipe(z.url({ message: "must be a full URL such as https://api.deepseek.com" })),
   AI_DAILY_LIMIT_PER_USER: intWithDefault(200),
+  AI_PRICE_INPUT_PER_MTOK: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() ? Number(v) : 0.3))
+    .pipe(z.number({ message: "must be a number, e.g. 0.30" }).min(0).max(1000)),
+  AI_PRICE_OUTPUT_PER_MTOK: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() ? Number(v) : 1.2))
+    .pipe(z.number({ message: "must be a number, e.g. 1.20" }).min(0).max(1000)),
 
   ADZUNA_APP_ID: optional,
   ADZUNA_APP_KEY: optional,
