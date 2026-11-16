@@ -13,6 +13,7 @@ const PROTECTED = [
   "/admin",
   "/api/admin",
   "/api/cvs",
+  "/api/account",
 ];
 
 function under(pathname: string, base: string) {

@@ -152,3 +152,18 @@ describe("extractJson", () => {
     expect(() => extractJson("no json here")).toThrow();
   });
 });
+
+describe("AI consent", () => {
+  it("never calls the AI for a user who has not consented or has withdrawn consent, and falls back", async () => {
+    const { deps, sent } = fakeDeps(goodReply);
+    const r = await parseCv(sample, "user-1", { ...deps, usage: { ...deps.usage!, hasConsent: async () => false } });
+    expect(sent).toEqual([]);
+    expect(r).toEqual({ profile: expected, parsedBy: "heuristic", flags: [] });
+  });
+  it("calls the AI when consent is on record", async () => {
+    const { deps, sent } = fakeDeps(goodReply);
+    const r = await parseCv(sample, "user-1", { ...deps, usage: { ...deps.usage!, hasConsent: async (id) => id === "user-1" } });
+    expect(r.parsedBy).toBe("ai");
+    expect(sent.length).toBe(2);
+  });
+});

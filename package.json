@@ -16,7 +16,8 @@
     "prebuild": "node scripts/check-env.mjs",
     "invite": "node --env-file=.env.local scripts/create-invite.mjs",
     "test:db": "bash scripts/test-db.sh",
-    "scan": "node --conditions=react-server --env-file=.env.local --import tsx scripts/scan.ts"
+    "scan": "node --conditions=react-server --env-file=.env.local --import tsx scripts/scan.ts",
+    "test:e2e": "playwright test --trace off"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

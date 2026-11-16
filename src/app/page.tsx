@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 /** Landing placeholder. The invite request form arrives in a later phase. */
-export default function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) {
+  const deleted = (await searchParams).deleted === "1";
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
@@ -24,6 +25,11 @@ export default function Home() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 sm:pt-20">
+        {deleted && (
+          <p role="status" className="mb-6 rounded-[12px] border border-line bg-accent-tint px-4 py-3 text-sm">
+            Your account and data have been deleted. Thank you for trying JobPilot AI.
+          </p>
+        )}
         <span className="inline-block rounded-full bg-accent-tint px-3 py-1 text-xs font-bold text-accent">
           Invite-only beta
         </span>

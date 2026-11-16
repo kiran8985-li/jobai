@@ -9,6 +9,8 @@ export class AIUnavailable extends Error {}
 
 export type UsageStore = {
   countToday(userId: string | null): Promise<number>;
+  /** False when the user has not given, or has withdrawn, consent to AI processing. */
+  hasConsent?(userId: string): Promise<boolean>;
   log(entry: {
     userId: string | null;
     purpose: string;
@@ -27,6 +29,11 @@ function supabaseUsageStore(): UsageStore | null {
   if (!e.NEXT_PUBLIC_SUPABASE_URL || !e.SUPABASE_SERVICE_ROLE_KEY) return null;
   const db = createSupabaseAdminClient();
   return {
+    async hasConsent(userId) {
+      const { data, error } = await db.from("profiles_user").select("ai_consent_at").eq("id", userId).maybeSingle();
+      if (error) throw new Error(error.message);
+      return Boolean(data?.ai_consent_at);
+    },
     async countToday(userId) {
       const start = new Date();
       start.setUTCHours(0, 0, 0, 0);
@@ -81,6 +88,17 @@ export async function chatJson(
   if (!provider) throw new AIUnavailable("AI is not configured");
   // Without the usage log the daily limit cannot be enforced, so the AI stays off.
   if (!usage) throw new AIUnavailable("AI usage log is not available");
+
+  // UK GDPR: nothing about a person goes to the AI unless they have consented, and consent can be withdrawn.
+  if (req.userId && usage.hasConsent) {
+    let ok = false;
+    try {
+      ok = await usage.hasConsent(req.userId);
+    } catch {
+      throw new AIUnavailable("could not check AI consent");
+    }
+    if (!ok) throw new AIUnavailable("no AI consent");
+  }
 
   let used: number;
   try {

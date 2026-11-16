@@ -24,6 +24,6 @@ export async function matchNowFor(userId: string): Promise<void> {
   try {
     await runConfiguredMatching({ userId, ai: false });
   } catch (err) {
-    console.error("Instant matching failed:", err instanceof Error ? err.message : err);
+    console.error("Instant matching failed:", err instanceof Error ? err.name : "error");
   }
 }

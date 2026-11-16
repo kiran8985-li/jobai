@@ -144,9 +144,12 @@ async function pdfText(bytes) {
   await p.getByLabel("Headline").fill("Senior Backend Developer");
   await p.getByRole("button", { name: "Save changes to my master CV" }).click();
   await p.waitForURL("**/cvs?approved=1");
-  check("editing the master CV removes tailored CVs made from the old one", sql(`select count(*) from tailored_cvs where user_id='${aliceId}'`) === "0");
+  // Tailored CVs not used for an application are removed; ones used for an application stay as a record.
+  check("editing the master CV removes tailored CVs made from the old one, except those used for an application",
+    sql(`select count(*) from tailored_cvs t where t.user_id='${aliceId}' and not exists (select 1 from applications a where a.user_id=t.user_id and a.job_id=t.job_id)`) === "0" &&
+    sql(`select count(*) from tailored_cvs t where t.user_id='${aliceId}'`) === sql(`select count(*) from applications where user_id='${aliceId}'`));
   await p.goto(`${APP}/jobs/${py}`);
-  await p.getByRole("button", { name: "Create a tailored CV" }).click();
+  await p.getByRole("button", { name: "Make it again" }).click();
   await p.waitForURL("**cv=made**");
   check("a new one uses the updated master CV", sql(`select content_json->>'headline' from tailored_cvs where job_id='${py}'`) === "Senior Backend Developer");
 

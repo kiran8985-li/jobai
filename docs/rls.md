@@ -53,6 +53,12 @@ bypasses RLS; only the scan, the invite script and admin code (after an `is_admi
 - **Bounded data.** At most 10 search profiles and 40 screening answers per user.
 - **One application per user per job** (unique constraint), so a re-run can never apply twice.
 
+## Deleting an account
+
+Every user table references `auth.users` with `ON DELETE CASCADE`, so deleting the sign-in account
+removes all of the person's rows. Their files are removed from both buckets first. `ai_usage` keeps
+the row with `user_id` set to null, so cost totals stay correct without identifying anyone.
+
 ## How this is tested
 
 - `npm run test:db` applies the migrations to a throwaway local Postgres and runs
