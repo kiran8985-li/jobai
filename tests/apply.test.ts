@@ -247,3 +247,12 @@ describe("UK day start", () => {
     expect(ukDayStart(Date.parse("2026-07-10T23:30:00Z"))).toBe("2026-07-10T23:00:00.000Z");
   });
 });
+
+describe("email sending switch", () => {
+  it("is off for now, so live mode still prepares and never sends", async () => {
+    const { EMAIL_SENDING_ENABLED, effectiveApplyMode } = await import("@/lib/apply");
+    expect(EMAIL_SENDING_ENABLED).toBe(false);
+    expect(effectiveApplyMode("live")).toBe("dry_run");
+    expect(effectiveApplyMode("dry_run")).toBe("dry_run");
+  });
+});

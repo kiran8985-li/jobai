@@ -11,6 +11,13 @@ what happens to every match that has no application yet.
 | Job is on an employer's own site, or auto-apply is off for the search | Everything prepared for the user to submit | Waiting for you |
 | Auto-apply paused for everything | Email jobs wait; nothing is created until resumed | (none) |
 
+## Email sending is switched off for now
+
+`EMAIL_SENDING_ENABLED` in `src/lib/apply/index.ts` is `false`. Every application is prepared and
+stored exactly as described below, and nothing is ever sent, even if `APPLY_MODE=live`. The sending
+code (Resend, idempotency, record-before-send) is built and unit-tested, ready for later. To switch
+it on: set the flag to `true`, then follow "Before going live" below.
+
 ## Safety rules
 
 - **Test mode by default.** `APPLY_MODE=dry_run` prepares and stores the full email but sends nothing.

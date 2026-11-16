@@ -4,6 +4,7 @@ import { ScanButton } from "@/components/scan-button";
 import { StatusChip } from "@/components/status-chip";
 import { requireUser } from "@/lib/auth";
 import { hasAiConsent, listCvs } from "@/lib/cv/store";
+import { effectiveApplyMode } from "@/lib/apply";
 import { env } from "@/lib/env";
 import { scoreChip } from "@/lib/match/display";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -132,7 +133,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <p className="text-lg font-bold" data-last-scan>{ago(lastScan)}</p>
               <p className="mt-1 text-sm text-muted">
                 Jobs are checked every 15 minutes. Auto-apply is {autoOn ? "on" : "off"}
-                {e.APPLY_MODE === "dry_run" ? ", in test mode: nothing is sent." : "."}{" "}
+                {effectiveApplyMode(e.APPLY_MODE) === "dry_run" ? ", in test mode: nothing is sent." : "."}{" "}
                 <Link href="/auto-apply" className="font-semibold text-accent">Settings</Link>
               </p>
             </div>

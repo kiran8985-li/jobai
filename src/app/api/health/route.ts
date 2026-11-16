@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { effectiveApplyMode } from "@/lib/apply";
 import { env, hasAI, hasSupabase } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export function GET() {
     return NextResponse.json({
       status: "ok",
       time: new Date().toISOString(),
-      applyMode: e.APPLY_MODE,
+      applyMode: effectiveApplyMode(e.APPLY_MODE),
       signupMode: e.SIGNUP_MODE,
       configured: {
         supabase: hasSupabase(e),

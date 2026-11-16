@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Alert } from "@/components/auth-ui";
 import { requireUser } from "@/lib/auth";
 import { getMasterCv } from "@/lib/cv/store";
+import { effectiveApplyMode } from "@/lib/apply";
 import { env } from "@/lib/env";
 import { CUSTOM_PREFIX, STANDARD_KEYS } from "@/lib/screening";
 import { PROFILE_COLUMNS, isAutoApplyOn, type SearchProfile } from "@/lib/search-profiles";
@@ -50,7 +51,7 @@ export default async function AutoApplyPage({ searchParams }: { searchParams: Pr
     else if (r.key.startsWith(CUSTOM_PREFIX)) custom.push({ question: r.key.slice(CUSTOM_PREFIX.length), answer: r.answer });
   }
   const msg = sp.msg ? MESSAGES[sp.msg] : undefined;
-  const dryRun = env().APPLY_MODE === "dry_run";
+  const dryRun = effectiveApplyMode(env().APPLY_MODE) === "dry_run";
   const anyOn = profiles.some((p) => p.auto_apply);
 
   return (
