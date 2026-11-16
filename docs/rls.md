@@ -33,7 +33,7 @@ bypasses RLS; only the scan, the invite script and admin code (after an `is_admi
 
 ## Admin-only tables (no policies, no privileges: closed to normal users)
 
-`invites`, `app_settings`, `source_status`, `ai_usage`, `scan_runs`.
+`invites`, `app_settings`, `source_status`, `ai_usage`, `scan_runs`, `invite_requests`, `extension_tokens`.
 
 ## Rules enforced in the database as well as the app
 

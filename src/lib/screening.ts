@@ -27,7 +27,7 @@ export const CUSTOM_PREFIX = "custom:";
 export const MAX_CUSTOM_ANSWERS = 20;
 
 const SENSITIVE =
-  /\b(disab\w*|impairment\w*|ethnic\w*|race|racial|religio\w*|faith|belief\w*|sexual\w*|orientation|gender|transgender|pregnan\w*|maternity|health|medical|illness\w*|mental|criminal|convict\w*|offen[cs]e\w*|arrest\w*|dbs|trade union|political|marital)\b/i;
+  /\b(disab\w*|impairment\w*|ethnic\w*|race|racial|religio\w*|faith|belief\w*|sexual\w*|orientation|gender|transgender|pregnan\w*|maternity|health|medical|illness\w*|mental|criminal|convict\w*|offen[cs]e\w*|arrest\w*|dbs|trade union|political|marital|veteran\w*)\b/i;
 
 /**
  * Sensitive questions (disability, ethnicity, health, criminal record, religion, sexual orientation

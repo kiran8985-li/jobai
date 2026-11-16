@@ -10,6 +10,7 @@ const PROTECTED = [
   "/auto-apply",
   "/notifications",
   "/account",
+  "/extension",
   "/admin",
   "/api/admin",
   "/api/cvs",

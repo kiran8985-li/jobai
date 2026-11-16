@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zeta - Python Engineer (sample Lever-style form)</title>
+<style>
+  body{font:15px/1.5 Helvetica,Arial,sans-serif;max-width:760px;margin:0 auto;padding:24px;color:#333;background:#fafafa}
+  h2{font-size:24px;margin:0}.posting-categories{color:#888;margin-bottom:24px}
+  .application-question{margin:14px 0;display:block}.application-label{font-weight:600;margin-bottom:4px}
+  .application-field input[type=text],.application-field input[type=email],.application-field textarea,select{width:100%;padding:9px;border:1px solid #ccc;border-radius:3px;font:inherit;box-sizing:border-box}
+  h4{margin-top:28px;border-top:1px solid #ddd;padding-top:16px}
+  .postings-btn{background:#579eee;color:#fff;border:0;padding:12px 28px;border-radius:3px;font-size:15px;margin-top:20px}
+  fieldset{border:0;padding:0;margin:14px 0}legend{font-weight:600}
+</style>
+</head>
+<body>
+<h2>Python Engineer</h2>
+<div class="posting-categories">London · Engineering · Full-time (sample form for testing)</div>
+<form id="application-form" method="POST" action="/never">
+  <h4>Submit your application</h4>
+  <label class="application-question"><div class="application-label">Resume/CV</div><div class="application-field"><input type="file" name="resume" id="resume-upload-input"></div></label>
+  <label class="application-question"><div class="application-label">Full name</div><div class="application-field"><input type="text" name="name"></div></label>
+  <label class="application-question"><div class="application-label">Email</div><div class="application-field"><input type="email" name="email"></div></label>
+  <label class="application-question"><div class="application-label">Phone</div><div class="application-field"><input type="text" name="phone"></div></label>
+  <label class="application-question"><div class="application-label">Current company</div><div class="application-field"><input type="text" name="org"></div></label>
+  <h4>Links</h4>
+  <label class="application-question"><div class="application-label">LinkedIn URL</div><div class="application-field"><input type="text" name="urls[LinkedIn]"></div></label>
+  <label class="application-question"><div class="application-label">GitHub URL</div><div class="application-field"><input type="text" name="urls[GitHub]"></div></label>
+  <label class="application-question"><div class="application-label">Portfolio URL</div><div class="application-field"><input type="text" name="urls[Portfolio]"></div></label>
+  <h4>Questions</h4>
+  <fieldset>
+    <legend>Do you have the right to work in the UK?</legend>
+    <label><input type="radio" name="cards[q1][field0]" value="Yes"> Yes</label>
+    <label><input type="radio" name="cards[q1][field0]" value="No"> No</label>
+  </fieldset>
+  <label class="application-question"><div class="application-label">What are your salary expectations?</div><div class="application-field"><input type="text" name="cards[q2][field0]"></div></label>
+  <label class="application-question"><div class="application-label">Do you have a driving licence?</div><div class="application-field"><input type="text" name="cards[q3][field0]"></div></label>
+  <label class="application-question"><div class="application-label">Additional information</div><div class="application-field"><textarea name="comments" rows="4"></textarea></div></label>
+  <h4>U.S. Equal Employment Opportunity information (optional)</h4>
+  <label class="application-question"><div class="application-label">Gender</div><div class="application-field"><select name="eeo[gender]"><option value="">Select ...</option><option>Male</option><option>Female</option><option>Decline to self-identify</option></select></div></label>
+  <label class="application-question"><div class="application-label">Race</div><div class="application-field"><select name="eeo[race]"><option value="">Select ...</option><option>White</option><option>Asian</option><option>Decline to self-identify</option></select></div></label>
+  <button type="submit" class="postings-btn" id="btn-submit">Submit application</button>
+</form>
+<script>
+  window.submitAttempts = 0;
+  document.getElementById("application-form").addEventListener("submit", (e) => { e.preventDefault(); window.submitAttempts++; document.title = "SUBMITTED"; });
+</script>
+</body>
+</html>

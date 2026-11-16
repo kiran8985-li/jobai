@@ -27,7 +27,7 @@ an invite-only beta.
    cp .env.example .env.local
    ```
 3. Create the database: in Supabase, open SQL Editor and run every file in `supabase/migrations/` in
-   name order (01 to 10). Or with the Supabase CLI: `npx supabase link --project-ref <ref>` then
+   name order (01 to 11). Or with the Supabase CLI: `npx supabase link --project-ref <ref>` then
    `npx supabase db push`.
 4. In Supabase → Authentication: keep **Confirm email** on, add your site's `/auth/callback` and
    `/auth/confirm` to the redirect URLs, and connect Resend as custom SMTP before inviting testers.
@@ -62,6 +62,13 @@ an invite-only beta.
 | `DEFAULT_MIN_MATCH`, `DEFAULT_DAILY_LIMIT`, `SCAN_INTERVAL_MIN`, `API_SOURCES_MIN_INTERVAL_MIN` | Optional | Defaults for new searches and scan timing |
 
 `npm run dev` checks `.env.local` against `.env.example` and stops with a clear message if a line is missing.
+
+## Browser extension
+
+`extension/` is a Chrome extension (Manifest V3) that fills application forms on employers' sites
+with the user's details, saved answers and tailored CV. The user always presses Submit. It never runs
+on LinkedIn or Indeed. Install it with Developer mode → Load unpacked; connect it with a code from
+Account → Browser extension. Details: `extension/README.md`.
 
 ## Running a scan
 
@@ -123,8 +130,10 @@ AI server for the ones that need AI.
 
 - **Email sending is off.** Jobs that take email applications are prepared, not sent.
 - **Most jobs are Manual Apply.** Adzuna, Reed and company boards rarely give an email address, so
-  users submit on the employer's site with the prepared CV and mark it applied. A form-filling
-  browser extension is Prompt 12.
+  users submit on the employer's site; the browser extension fills the form for them.
+- **The extension is tested on sample Greenhouse- and Lever-style forms.** Real employer forms vary
+  (custom widgets, multi-page forms); anything it cannot recognise is highlighted for the user.
+  It is installed with Developer mode until it is published in the Chrome Web Store.
 - **Matching is keyword based.** It recognises a fixed list of skills (aimed at IT roles) and can be
   generous on title matches; the optional AI check reviews only jobs near the threshold.
 - **Location is matched by name.** A town next to a chosen city is not matched unless listed.

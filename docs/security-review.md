@@ -28,6 +28,7 @@ No high-severity issue is open. One moderate dependency advisory is accepted for
 | 15 | Suspended users | Already blocked by RLS and middleware; suspension now also ends their sessions, and the login form says why. | — | OK (improved in Prompt 9) |
 | 16 | Prompt injection from job adverts | Advert text goes into AI prompts and could try to steer the AI. Its effect is bounded: tailored CVs pass the fact check, and the eligibility check can move a score by at most +10. | Low | Accepted |
 | 17 | Sending emails | Switched off in code (`EMAIL_SENDING_ENABLED = false`), so no application can be sent by mistake. | — | OK |
+| 19 | Browser extension | Signs in with a 12-hour code stored only as a SHA-256 fingerprint; one code per user; Disconnect revokes it at once; suspended users are refused. The extension stores only the site address and the code, runs only when the user clicks, accepts messages only from its own popup, refuses LinkedIn, Indeed and non-web pages (checked in the extension, again inside the page, and by the server), never submits, and never answers sensitive questions. It needs access to https sites to fill the page the user asks for. | — | OK (added in Prompt 12) |
 | 18 | Login abuse | Rate limits on sign-in, sign-up and verification emails come from Supabase Auth. The login error does not reveal whether an email has an account. | — | OK |
 
 ## How to repeat this review

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>JobPilot AI</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <span class="logo" aria-hidden="true">JP</span>
+      <strong>JobPilot AI</strong>
+    </header>
+
+    <main>
+      <p id="message" role="status" hidden></p>
+
+      <section id="connect" hidden aria-labelledby="connect-h">
+        <h1 id="connect-h">Connect to JobPilot AI</h1>
+        <p class="muted">In JobPilot AI, open Account, then Browser extension, and get a connection code.</p>
+        <label>JobPilot AI address
+          <input id="appUrl" type="url" placeholder="https://jobpilotai.co.uk" autocomplete="off" />
+        </label>
+        <label>Connection code
+          <input id="code" type="text" placeholder="jpx_..." autocomplete="off" spellcheck="false" />
+        </label>
+        <button id="connectBtn" class="primary" type="button">Connect</button>
+      </section>
+
+      <section id="blocked" hidden>
+        <h1>Not available here</h1>
+        <p class="muted">JobPilot AI does not work on LinkedIn or Indeed, and does nothing on this page.</p>
+      </section>
+
+      <section id="ready" hidden aria-labelledby="ready-h">
+        <h1 id="ready-h">Fill this application</h1>
+        <p class="muted" id="site"></p>
+        <div id="jobBox"></div>
+        <button id="fillBtn" class="primary" type="button">Fill this form</button>
+        <p class="muted small">You check everything and press Submit yourself. JobPilot AI never submits.</p>
+        <div id="result" hidden></div>
+        <button id="appliedBtn" class="secondary" type="button" hidden>Mark as applied</button>
+      </section>
+    </main>
+
+    <footer>
+      <span id="who" class="muted small"></span>
+      <button id="disconnectBtn" class="link" type="button" hidden>Disconnect</button>
+    </footer>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

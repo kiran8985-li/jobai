@@ -64,6 +64,7 @@ export async function deleteUserData(db: SupabaseClient, userId: string, email: 
     await emptyFolder(db, "tailored", userId);
     await db.from("invites").delete().eq("email", email.toLowerCase());
     await db.from("invite_requests").delete().eq("email", email.toLowerCase());
+    // extension_tokens rows go with the account (ON DELETE CASCADE).
     const { error } = await db.auth.admin.deleteUser(userId);
     if (error) return { ok: false, reason: "failed" };
     return { ok: true };

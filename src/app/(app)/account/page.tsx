@@ -38,6 +38,12 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         <a href="/api/account/export" download className={`mt-3 ${button}`}>Download my data</a>
       </section>
 
+      <section className={card} aria-labelledby="ext-h">
+        <h2 id="ext-h" className="text-lg font-bold">Browser extension</h2>
+        <p className="mt-1 text-sm text-muted">Fill job application forms on employers&apos; sites with your details and tailored CV.</p>
+        <Link href="/extension" className={`mt-3 ${button}`}>Set up the extension</Link>
+      </section>
+
       <section className={card} aria-labelledby="ai-h">
         <h2 id="ai-h" className="text-lg font-bold">AI processing</h2>
         {consent ? (

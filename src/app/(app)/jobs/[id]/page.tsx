@@ -168,7 +168,7 @@ export default async function JobPage({ params, searchParams }: { params: Promis
         {(job.source === "adzuna" || job.also_on.includes("adzuna")) && " · Jobs by Adzuna"}
       </p>
 
-      {match && b ? (
+      {match && b?.role ? (
         <section className={card} aria-labelledby="why-h">
           <h2 id="why-h" className="text-lg font-bold">Why this score</h2>
           <p className="mt-1 text-sm text-muted">
