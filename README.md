@@ -27,7 +27,7 @@ an invite-only beta.
    cp .env.example .env.local
    ```
 3. Create the database: in Supabase, open SQL Editor and run every file in `supabase/migrations/` in
-   name order (01 to 09). Or with the Supabase CLI: `npx supabase link --project-ref <ref>` then
+   name order (01 to 10). Or with the Supabase CLI: `npx supabase link --project-ref <ref>` then
    `npx supabase db push`.
 4. In Supabase → Authentication: keep **Confirm email** on, add your site's `/auth/callback` and
    `/auth/confirm` to the redirect URLs, and connect Resend as custom SMTP before inviting testers.
@@ -40,7 +40,8 @@ an invite-only beta.
    npm run invite -- you@example.com
    ```
    Open the printed link, sign up, and click the link in the verification email.
-6. Invite testers from Admin → Users and invites (copy each link and send it yourself).
+6. Invite testers from Admin → Users and invites (copy each link and send it yourself). People can
+   also ask for an invite on the home page; their requests appear on the same admin page.
 
 ## Settings (`.env.local`)
 
@@ -109,6 +110,10 @@ Put the local URL and keys that command prints into `.env.local`, plus `DEMO_SOU
 ```bash
 npm run test:e2e
 ```
+
+`e2e/pages.spec.ts` audits every page (reachable from the menu, real data, design rules, 375 px).
+Set `PROOF_DIR=/some/folder` to save a screenshot of each page. `e2e/open-mode.spec.ts` runs only
+when the app is started with `SIGNUP_MODE=open`.
 
 More detailed browser checks for each phase are in `tests/e2e/*.cjs`
 (run with `node --env-file=.env.local tests/e2e/<name>.cjs`); `tests/e2e/fake-ai.cjs` is a stand-in

@@ -26,6 +26,7 @@ export default function PrivacyPage() {
 
       <h2 className={h2}>What we store, and why</h2>
       <ul className={ul}>
+        <li><strong>Invite requests:</strong> if you ask for an invite on our home page, your name and email address. Only to reply about the beta; deleted when you delete your account.</li>
         <li><strong>Your account:</strong> name, email address and password (stored scrambled by our login provider). To let you sign in.</li>
         <li><strong>Your CV:</strong> the file you upload, its text, and the structured version you check and approve. To find, score and tailor jobs for you.</li>
         <li><strong>Your job searches and screening answers</strong> (for example notice period, right to work). To find jobs and fill in what employers ask.</li>

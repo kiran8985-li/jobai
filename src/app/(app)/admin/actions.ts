@@ -82,3 +82,25 @@ export async function runSourceNow(form: FormData): Promise<void> {
   revalidatePath("/admin/sources");
   redirect(`/admin/sources?msg=${q}&source=${name}`);
 }
+
+/** Turns an invite request into an invite (or dismisses it). */
+export async function handleInviteRequest(form: FormData): Promise<void> {
+  const { db, adminId } = await adminDb();
+  const id = uuid.safeParse(form.get("id"));
+  if (!id.success) redirect("/admin/users");
+  const { data: req } = await db.from("invite_requests").select("email").eq("id", id.data).is("handled_at", null).maybeSingle();
+  if (!req) redirect("/admin/users");
+  const dismiss = form.get("outcome") === "dismissed";
+  if (!dismiss) {
+    const { data: list } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (list?.users.some((u) => u.email?.toLowerCase() === req.email)) {
+      await db.from("invite_requests").update({ handled_at: new Date().toISOString(), outcome: "dismissed" }).eq("id", id.data);
+      redirect("/admin/users?msg=has_account");
+    }
+    const { data: open } = await db.from("invites").select("id").eq("email", req.email).is("used_at", null).maybeSingle();
+    if (!open) await db.from("invites").insert({ email: req.email, created_by: adminId });
+  }
+  await db.from("invite_requests").update({ handled_at: new Date().toISOString(), outcome: dismiss ? "dismissed" : "invited" }).eq("id", id.data);
+  revalidatePath("/admin/users");
+  redirect(dismiss ? "/admin/users?msg=dismissed" : `/admin/users?msg=invited&email=${encodeURIComponent(req.email)}`);
+}

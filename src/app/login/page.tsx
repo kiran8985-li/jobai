@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { hasSupabase } from "@/lib/env";
+import { env, hasSupabase } from "@/lib/env";
 import { safeNext } from "@/lib/paths";
 import { Alert, AuthShell } from "@/components/auth-ui";
 import { GoogleButton } from "@/components/google-button";
@@ -43,9 +44,17 @@ export default async function LoginPage({
         <span className="h-px flex-1 bg-line" />
       </div>
       <GoogleButton next={next} label="Continue with Google" />
-      <p className="mt-6 text-sm text-muted">
-        New here? JobPilot AI is invite-only for now. Open the link in your invite email to create your account.
-      </p>
+      {env().SIGNUP_MODE === "open" ? (
+        <p className="mt-6 text-sm text-muted">
+          New here?{" "}
+          <Link href="/signup" className="font-semibold text-accent">Create an account</Link>
+        </p>
+      ) : (
+        <p className="mt-6 text-sm text-muted">
+          New here? JobPilot AI is invite-only for now. Open the link in your invite email, or{" "}
+          <Link href="/#request" className="font-semibold text-accent">request an invite</Link>.
+        </p>
+      )}
     </AuthShell>
   );
 }

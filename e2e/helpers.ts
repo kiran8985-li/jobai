@@ -20,7 +20,7 @@ export async function resetDatabase() {
   const a = adminClient();
   await a.storage.emptyBucket("cvs");
   await a.storage.emptyBucket("tailored");
-  sql("truncate auth.users cascade; delete from public.invites; truncate public.jobs cascade; truncate public.scan_runs; truncate public.source_status; delete from public.ai_usage; update public.app_settings set value='invite'");
+  sql("truncate auth.users cascade; delete from public.invites; delete from public.invite_requests; truncate public.jobs cascade; truncate public.scan_runs; truncate public.source_status; delete from public.ai_usage; update public.app_settings set value='invite'");
 }
 
 /** Creates a verified account directly (for people the test does not sign up through the UI). */

@@ -4,7 +4,7 @@ import { CopyButton } from "@/components/admin-ui";
 import { Alert, inputClass } from "@/components/auth-ui";
 import { adminDb, listUsers } from "@/lib/admin/data";
 import { env } from "@/lib/env";
-import { createInvite, revokeInvite } from "../actions";
+import { createInvite, handleInviteRequest, revokeInvite } from "../actions";
 
 export const metadata = { title: "Users and invites – Admin" };
 
@@ -13,15 +13,17 @@ const MSG: Record<string, { kind: "notice" | "error"; text: string }> = {
   revoked: { kind: "notice", text: "Invite withdrawn. The link no longer works." },
   bad_email: { kind: "error", text: "Enter a valid email address." },
   has_account: { kind: "error", text: "That email address already has an account." },
+  dismissed: { kind: "notice", text: "Request dismissed." },
 };
 
 export default async function AdminUsers({ searchParams }: { searchParams: Promise<{ msg?: string; email?: string }> }) {
   const { db } = await adminDb();
   const sp = await searchParams;
-  const [users, { data: invites }, { data: apps }] = await Promise.all([
+  const [users, { data: invites }, { data: apps }, { data: requests }] = await Promise.all([
     listUsers(db),
     db.from("invites").select("id, email, token, created_at, used_at").order("created_at", { ascending: false }).limit(200),
     db.from("applications").select("user_id").limit(10000),
+    db.from("invite_requests").select("id, email, name, created_at").is("handled_at", null).order("created_at").limit(200),
   ]);
   const appCount = new Map<string, number>();
   for (const a of apps ?? []) appCount.set(a.user_id as string, (appCount.get(a.user_id as string) ?? 0) + 1);
@@ -34,6 +36,37 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
     <>
       <h1 className="text-3xl font-extrabold tracking-tight">Users and invites</h1>
       {msg && <Alert kind={msg.kind}>{msg.text}</Alert>}
+
+      <section className={`mt-6 ${adminCard}`} aria-labelledby="req-h">
+        <h2 id="req-h" className="text-lg font-bold">Invite requests ({(requests ?? []).length})</h2>
+        <p className="mt-1 text-sm text-muted">People who asked for an invite on the home page.</p>
+        {(requests ?? []).length === 0 ? (
+          <p className="mt-2 text-sm text-muted">No requests waiting.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {(requests ?? []).map((r) => (
+              <li key={r.id} data-request={r.email} className="flex flex-wrap items-center justify-between gap-2 rounded-[12px] border border-line p-3">
+                <div className="min-w-0">
+                  <p className="break-all text-sm font-semibold">{r.email}</p>
+                  <p className="text-xs text-muted">{r.name ? `${r.name} · ` : ""}asked {when(r.created_at)}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <form action={handleInviteRequest}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <input type="hidden" name="outcome" value="invited" />
+                    <button type="submit" className={adminPrimary}>Create invite</button>
+                  </form>
+                  <form action={handleInviteRequest}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <input type="hidden" name="outcome" value="dismissed" />
+                    <button type="submit" className={adminDanger}>Dismiss</button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className={`mt-6 ${adminCard}`} aria-labelledby="inv-h">
         <h2 id="inv-h" className="text-lg font-bold">Invite a tester</h2>

@@ -338,6 +338,21 @@ begin
   select count(*) into n from public.jobs_to_match((select id from public.search_profiles where name = 'Owner search'), 10) where dedupe_key = 'k1';
   if n <> 1 then raise exception 'FAIL 12.5g: jobs_to_match returned % jobs', n; end if;
 
+  -- 12.7 Invite requests are server-only.
+  perform pg_temp.act_as('authenticated', admin_id);
+  begin
+    perform 1 from public.invite_requests;
+    raise exception 'FAIL 12.7a: a user read invite requests';
+  exception when insufficient_privilege then null;
+  end;
+  perform pg_temp.act_as('anon', null);
+  begin
+    insert into public.invite_requests (email) values ('spam@example.com');
+    raise exception 'FAIL 12.7b: a visitor wrote an invite request directly';
+  exception when insufficient_privilege then null;
+  end;
+  perform pg_temp.reset();
+
   -- 13. Open mode: anyone can register, no invite needed.
   update public.app_settings set value = 'open' where key = 'signup_mode';
   insert into auth.users (email, encrypted_password) values ('newcomer@example.com', 'x');

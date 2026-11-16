@@ -51,5 +51,7 @@ html.dark {
 body {
   background: var(--page);
   color: var(--text);
-  font-family: var(--font-sans);
+  /* The font variable is set on <body> by next/font. (@theme inline does not emit --font-sans as a
+     CSS variable, so referring to it here fell back to the system font.) */
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 }

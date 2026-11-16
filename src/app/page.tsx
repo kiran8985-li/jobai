@@ -1,9 +1,14 @@
 import Link from "next/link";
+import { RequestInviteForm } from "@/components/request-invite-form";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { env } from "@/lib/env";
 
-/** Landing placeholder. The invite request form arrives in a later phase. */
+export const dynamic = "force-dynamic";
+
+/** Landing page. In invite mode visitors can request an invite; in open mode they sign up directly. */
 export default async function Home({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) {
   const deleted = (await searchParams).deleted === "1";
+  const open = env().SIGNUP_MODE === "open";
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
@@ -15,10 +20,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
         </span>
         <div className="flex items-center gap-1">
           <ThemeToggle className="px-3 text-muted hover:bg-accent-tint" />
-          <Link
-            href="/login"
-            className="flex min-h-11 items-center whitespace-nowrap rounded-[12px] px-3 text-sm font-semibold text-accent hover:bg-accent-tint"
-          >
+          <Link href="/login" className="flex min-h-11 items-center whitespace-nowrap rounded-[12px] px-3 text-sm font-semibold text-accent hover:bg-accent-tint">
             Log in
           </Link>
         </div>
@@ -31,32 +33,31 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
           </p>
         )}
         <span className="inline-block rounded-full bg-accent-tint px-3 py-1 text-xs font-bold text-accent">
-          Invite-only beta
+          {open ? "Now open to everyone" : "Invite-only beta"}
         </span>
         <h1 className="mt-4 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
           Your CV, matched and sent to the right UK jobs.
         </h1>
         <p className="mt-5 max-w-2xl text-lg text-muted">
-          JobPilot AI finds jobs that fit your CV, tailors your CV for each one using only facts you have
-          approved, and applies within the limits you set. Anything it cannot send is prepared for you to
-          submit in one click.
+          JobPilot AI finds jobs that fit your CV, tailors your CV for each one using only facts you have approved, and applies
+          within the limits you set. Anything it cannot send is prepared for you to submit in one click.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Link
-            href="/login"
-            className="flex min-h-11 items-center justify-center rounded-[12px] bg-accent px-6 font-bold text-white hover:bg-accent-hover"
-          >
-            I have an invite
+          {open ? (
+            <Link href="/signup" className="flex min-h-11 items-center justify-center rounded-[12px] bg-accent px-6 font-bold text-white hover:bg-accent-hover">
+              Create your account
+            </Link>
+          ) : (
+            <a href="#request" className="flex min-h-11 items-center justify-center rounded-[12px] bg-accent px-6 font-bold text-white hover:bg-accent-hover">
+              Request an invite
+            </a>
+          )}
+          <Link href="/login" className="flex min-h-11 items-center justify-center rounded-[12px] border border-line bg-surface px-6 font-bold hover:border-accent">
+            {open ? "Log in" : "I have an account"}
           </Link>
-          <a
-            href="#how"
-            className="flex min-h-11 items-center justify-center rounded-[12px] border border-line bg-surface px-6 font-bold hover:border-accent"
-          >
-            How it works
-          </a>
         </div>
 
-        <section id="how" className="mt-20 grid gap-4 sm:grid-cols-3">
+        <section id="how" className="mt-20 grid gap-4 sm:grid-cols-3" aria-label="How it works">
           {[
             ["Match", "Every 15 minutes we check UK job sources and score each job against your search profiles."],
             ["Tailor", "Your CV is reordered and reworded for the job. Nothing is invented: every line traces back to your master CV."],
@@ -68,10 +69,23 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
             </div>
           ))}
         </section>
+
+        {!open && (
+          <section id="request" className="mt-12 max-w-2xl scroll-mt-6 rounded-[18px] border border-line bg-surface p-6 sm:p-8" aria-labelledby="req-h">
+            <h2 id="req-h" className="text-2xl font-extrabold">Request an invite</h2>
+            <p className="mt-2 text-sm text-muted">
+              The beta is small, for people working in IT and computing. Leave your details and we will be in touch. Already
+              invited? Open the link in your invite email.
+            </p>
+            <div className="mt-4">
+              <RequestInviteForm />
+            </div>
+          </section>
+        )}
       </main>
 
       <footer className="border-t border-line px-4 py-6 text-center text-sm text-muted">
-        <Link href="/privacy" className="hover:text-accent">
+        <Link href="/privacy" className="inline-flex min-h-11 items-center hover:text-accent">
           Privacy
         </Link>
       </footer>

@@ -19,6 +19,7 @@ export async function exportUserData(db: SupabaseClient, userId: string, email: 
     own("ai_usage", "purpose, model, prompt_tokens, completion_tokens, ok, created_at"),
     db.from("invites").select("email, created_at, used_at").eq("email", email.toLowerCase()),
   ]);
+  const { data: requests } = await db.from("invite_requests").select("email, name, created_at, outcome").eq("email", email.toLowerCase());
   return {
     exported_at: new Date().toISOString(),
     about: "All personal data JobPilot AI holds about you. Original CV files are in your account under My CVs.",
@@ -32,6 +33,7 @@ export async function exportUserData(db: SupabaseClient, userId: string, email: 
     notifications: notifications.data ?? [],
     ai_usage: ai.data ?? [],
     invites: invites.data ?? [],
+    invite_requests: requests ?? [],
   };
 }
 
@@ -61,6 +63,7 @@ export async function deleteUserData(db: SupabaseClient, userId: string, email: 
     await emptyFolder(db, "cvs", userId);
     await emptyFolder(db, "tailored", userId);
     await db.from("invites").delete().eq("email", email.toLowerCase());
+    await db.from("invite_requests").delete().eq("email", email.toLowerCase());
     const { error } = await db.auth.admin.deleteUser(userId);
     if (error) return { ok: false, reason: "failed" };
     return { ok: true };
