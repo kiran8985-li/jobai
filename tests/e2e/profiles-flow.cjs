@@ -193,7 +193,8 @@ async function fillSearch(p, v) {
   check("the user is told a master CV is needed", shownNeedCv, await main(p2));
 
   await p.goto(`${APP}/dashboard`);
-  check("dashboard shows the user is set up", (await main(p)).includes("You are set up"));
+  await p.getByRole("button", { name: "Run scan now" }).waitFor();
+  check("dashboard shows the user is set up", (await main(p)).includes("Last check for new jobs"));
 
   await browser.close();
   console.log(failed ? `\n${failed} CHECK(S) FAILED` : "\nALL SEARCH PROFILE CHECKS PASSED");

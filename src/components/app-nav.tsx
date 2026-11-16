@@ -21,7 +21,7 @@ export const seekerNav: NavItem[] = [
  * Dark left sidebar on desktop, top bar with a slide-out menu on phones.
  * `isAdmin` must come from a server-side check; the Admin link is hidden otherwise.
  */
-export function AppNav({ isAdmin = false, userLabel }: { isAdmin?: boolean; userLabel?: string }) {
+export function AppNav({ isAdmin = false, userLabel, unread = 0 }: { isAdmin?: boolean; userLabel?: string; unread?: number }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -47,6 +47,11 @@ export function AppNav({ isAdmin = false, userLabel }: { isAdmin?: boolean; user
               }`}
             >
               {item.label}
+              {item.href === "/notifications" && unread > 0 && (
+                <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs font-extrabold text-[#14122B]" aria-label={`${unread} unread`}>
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
             </Link>
           </li>
         );
@@ -91,6 +96,11 @@ export function AppNav({ isAdmin = false, userLabel }: { isAdmin?: boolean; user
           className="min-h-11 rounded-[12px] px-4 text-sm font-semibold text-white hover:bg-white/10"
         >
           {open ? "Close" : "Menu"}
+          {!open && unread > 0 && (
+            <span className="ml-2 rounded-full bg-[#6C4DFF] px-2 py-0.5 text-xs font-extrabold" aria-label={`${unread} unread notifications`}>
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
         </button>
       </header>
 

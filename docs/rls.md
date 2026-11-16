@@ -57,5 +57,5 @@ bypasses RLS; only the scan, the invite script and admin code (after an `is_admi
 
 - `npm run test:db` applies the migrations to a throwaway local Postgres and runs
   `supabase/tests/rls_test.sql` (sign-up rules, per-user isolation, admin tables, suspension).
-- `node --env-file=.env.local tests/e2e/auth-flow.cjs` and `tests/e2e/cv-flow.cjs`, `tests/e2e/profiles-flow.cjs`, `tests/e2e/jobs-flow.cjs`, `tests/e2e/tailor-flow.cjs` and `tests/e2e/apply-flow.cjs` drive the real pages against a local
+- `node --env-file=.env.local tests/e2e/auth-flow.cjs` and `tests/e2e/cv-flow.cjs`, `tests/e2e/profiles-flow.cjs`, `tests/e2e/jobs-flow.cjs`, `tests/e2e/tailor-flow.cjs`, `tests/e2e/apply-flow.cjs` and `tests/e2e/dashboard-flow.cjs` drive the real pages against a local
   Supabase (`npx supabase start`). Never run it against a real project: it wipes and creates users.

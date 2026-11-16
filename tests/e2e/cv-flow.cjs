@@ -50,6 +50,7 @@ const formError = async (page) => ((await page.locator('main form [role="alert"]
 
 (async () => {
   await admin.storage.emptyBucket("cvs");
+  await admin.storage.emptyBucket("tailored");
   if (MODE === "ai") await fetch("http://127.0.0.1:4010/reset");
   sql("truncate auth.users cascade; delete from public.invites; update public.app_settings set value='invite'");
   const run = String(Date.now()).slice(-6);
@@ -86,7 +87,7 @@ const formError = async (page) => ((await page.locator('main form [role="alert"]
   await p.goto(`${APP}/onboarding`);
   await p.setInputFiles('input[type="file"]', `${FIX}/big.txt`);
   check("a file over 5 MB is refused before sending", /larger than 5 MB/.test(await p.textContent("main")));
-  check("nothing was stored for the refused files", sql("select count(*) from cvs") === "0" && sql("select count(*) from storage.objects") === "0");
+  check("nothing was stored for the refused files", sql("select count(*) from cvs") === "0" && sql("select count(*) from storage.objects where bucket_id='cvs'") === "0");
 
   // --- upload the sample CV as PDF
   await upload(p, `${FIX}/sample.pdf`);
@@ -139,7 +140,9 @@ const formError = async (page) => ((await page.locator('main form [role="alert"]
   check("cannot approve without a name", /Add your name/.test(await formError(p)));
   await p.getByLabel("Name", { exact: true }).fill("Priya Shah");
   await p.getByRole("button", { name: "Approve as my master CV" }).click();
-  await p.waitForURL("**/cvs?approved=1");
+  // The first approval carries on to job preferences (onboarding step 4).
+  await p.waitForURL("**/onboarding/preferences");
+  await p.goto(`${APP}/cvs`);
   check("approve makes it the master CV", sql(`select approved from cvs where id='${cvId}'`) === "t" && (await p.textContent("main")).includes("Master CV"));
 
   // --- another user cannot see it
@@ -154,17 +157,18 @@ const formError = async (page) => ((await page.locator('main form [role="alert"]
   const cv2 = p.url().split("/").slice(-2)[0];
   check("first CV is still the master while the new one is unapproved", sql(`select string_agg(id::text, ',') from cvs where approved`) === cvId);
   await p.getByRole("button", { name: "Approve as my master CV" }).click();
-  await p.waitForURL("**/cvs?approved=1");
+  // With no job search saved yet, approving still carries on to preferences.
+  await p.waitForURL("**/onboarding/preferences");
   check("only one master CV at a time", sql(`select string_agg(id::text, ',') from cvs where approved`) === cv2);
 
   // --- text file, then delete
   await upload(p, `${FIX}/sample.txt`);
   check("text upload lands on the review page", p.url().endsWith("/review"), (await formError(p)) || p.url());
-  const before = sql("select count(*) from cvs") + "/" + sql("select count(*) from storage.objects");
+  const before = sql("select count(*) from cvs") + "/" + sql("select count(*) from storage.objects where bucket_id='cvs'");
   await p.goto(`${APP}/cvs`);
   await p.getByRole("button", { name: "Delete" }).first().click();
   await p.waitForFunction(() => document.querySelectorAll("main li").length === 2);
-  const after = sql("select count(*) from cvs") + "/" + sql("select count(*) from storage.objects");
+  const after = sql("select count(*) from cvs") + "/" + sql("select count(*) from storage.objects where bucket_id='cvs'");
   check("delete removes the CV and its stored file", before === "3/3" && after === "2/2", `${before} -> ${after}`);
 
   await browser.close();

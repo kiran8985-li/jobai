@@ -11,6 +11,7 @@ The saved jobs are then scored against every active search (see `docs/matching.m
 | `npm run scan -- reed` | Runs one source only, ignoring its "about hourly" wait. |
 | `POST /api/cron/scan` | The same scan, for the scheduler. Needs the `CRON_SECRET`. |
 | `.github/workflows/scan.yml` | Calls that route every 15 minutes. |
+| "Run scan now" on the dashboard | The same scan for one signed-in user: only their searches are used for job queries, and only their matches, CVs and applications are processed. At most once every 10 minutes per user. |
 
 ## Sources
 
