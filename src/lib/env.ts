@@ -45,6 +45,13 @@ export const serverEnvSchema = publicEnvSchema.extend({
 
   DEEPSEEK_API_KEY: optional,
   DEEPSEEK_MODEL: optional,
+  DEEPSEEK_FALLBACK_MODEL: optional,
+  /** Optional "none" | "low" | "medium" | "high" for thinking models (Gemini, o-series). Empty = provider default. */
+  AI_REASONING_EFFORT: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() ? v.trim() : undefined))
+    .pipe(z.enum(["none", "minimal", "low", "medium", "high"]).optional()),
   DEEPSEEK_BASE_URL: z
     .string()
     .optional()

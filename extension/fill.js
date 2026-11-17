@@ -57,7 +57,10 @@
       const lab = holder && holder.querySelector("label, .application-label, .label, .text");
       if (lab && !lab.contains(el)) parts.push(lab.textContent);
     }
-    return norm(parts.join(" ")) || norm(el.getAttribute("placeholder")) || norm(el.name);
+    // The same words often come from two places (aria-label and <label>); keep each once.
+    const uniq = [];
+    for (const t of parts.map(norm).filter(Boolean)) if (!uniq.some((u) => u.includes(t))) uniq.splice(0, uniq.length, ...uniq.filter((u) => !t.includes(u)), t);
+    return uniq.join(" ") || norm(el.getAttribute("placeholder")) || norm(el.name);
   }
   const keyText = (el) => norm([labelText(el), el.name, el.id, el.getAttribute("placeholder")].join(" "));
 
@@ -87,6 +90,11 @@
   function optionFor(options, answer) {
     const a = norm(answer);
     const yes = /^yes\b/.test(a), no = /^no\b/.test(a);
+    // "Yes, but I need sponsorship" matches an option about needing sponsorship (not one about working without it).
+    if (/sponsor/.test(a)) {
+      const s = options.filter((o) => /sponsor/.test(norm(o.text)) && !/without|not (be )?(require|need)|no sponsor/.test(norm(o.text)));
+      if (s.length === 1) return s[0];
+    }
     let best = null;
     for (const o of options) {
       const t = norm(o.text);
@@ -99,6 +107,45 @@
     return best;
   }
 
+  const isCombo = (el) => el.getAttribute("role") === "combobox" && el instanceof HTMLInputElement;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // The ONLY place the extension presses anything: an option inside an open dropdown list.
+  // It refuses every other element, so it can never press Submit or any other button.
+  function chooseOption(opt) {
+    if (!opt || !opt.matches('[role="option"], [class*="select__option"]') || opt.closest("form button, button, a, input[type=submit]")) return false;
+    opt.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    opt.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    return true;
+  }
+  function openList(el) {
+    el.focus();
+    el.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+  }
+  function closeList(el) {
+    el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  }
+
+  /** Search-style dropdowns (React Select and similar): type the answer, then click the matching option. */
+  async function pickCombo(el, answer) {
+    openList(el);
+    for (const query of [answer, ""]) {
+      setValue(el, query);
+      for (let i = 0; i < 15; i++) {
+        await sleep(100);
+        const list = el.getAttribute("aria-controls") && document.getElementById(el.getAttribute("aria-controls"));
+        const opts = [...(list || document).querySelectorAll('[role="option"], [class*="select__option"]')].map((o) => ({ el: o, text: o.textContent }));
+        const o = opts.length && optionFor(opts, answer);
+        if (o && chooseOption(o.el)) { await sleep(50); return true; }
+        if (opts.length) break;
+      }
+    }
+    closeList(el);
+    setValue(el, "");
+    return false;
+  }
+  const comboBox = (el) => el.closest('[class*="select__container"], [class*="select-container"], [class*="Select"]') || el.parentElement || el;
+
   function mark(el, kind, note) {
     const colour = kind === "filled" ? "#6C4DFF" : "#D97706";
     el.style.outline = `3px solid ${colour}`;
@@ -109,7 +156,7 @@
       tag.setAttribute("data-jobpilot-note", kind);
       tag.textContent = note;
       tag.style.cssText = "margin:6px 0;padding:6px 10px;border-radius:8px;background:#FEF3C7;color:#78350F;font:600 13px/1.4 system-ui,sans-serif;";
-      const anchor = el.type === "radio" || el.type === "checkbox" ? el.closest("fieldset") || el.parentElement : el;
+      const anchor = el.type === "radio" || el.type === "checkbox" ? el.closest("fieldset") || el.parentElement : isCombo(el) ? comboBox(el) : el;
       anchor.insertAdjacentElement("afterend", tag);
     }
   }
@@ -134,7 +181,7 @@
   // Questions are matched in lower case but reported to the user in readable form.
   const pretty = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
-  window.__jobpilotFill = function fill(data) {
+  window.__jobpilotFill = async function fill(data) {
     const report = { filled: [], attached: null, sensitive: [], unanswered: [], blocked: false };
     if (isBlocked()) return { ...report, blocked: true };
     const p = data.person || {};
@@ -201,6 +248,7 @@
         if (key === "fullName" && /first|last|given|family|surname|company|user/.test(text)) continue;
         const v = values[key];
         if (!v || el instanceof HTMLSelectElement || type === "radio") break;
+        if (isCombo(el)) { if (await pickCombo(el, v)) { report.filled.push(label || key); mark(comboBox(el), "filled"); filled = true; } break; }
         setValue(el, v);
         report.filled.push(label || key);
         mark(el, "filled");
@@ -231,6 +279,8 @@
           const group = [...document.querySelectorAll(`input[type=radio][name="${CSS.escape(el.name)}"]`)];
           const o = optionFor(group.map((r) => ({ el: r, text: labelText(r) || r.value, value: r.value })), answer);
           if (o) { setChecked(o.el); report.filled.push(label); mark(o.el.closest("fieldset") || o.el, "filled"); continue; }
+        } else if (isCombo(el)) {
+          if (await pickCombo(el, answer)) { report.filled.push(label); mark(comboBox(el), "filled"); continue; }
         } else {
           setValue(el, answer);
           report.filled.push(label);
@@ -241,7 +291,7 @@
 
       // 5. Anything else is for the user.
       if (label && !report.unanswered.includes(label)) report.unanswered.push(label);
-      mark(type === "radio" ? el.closest("fieldset") || el : el, "unanswered", "JobPilot AI has no saved answer for this. Please answer it yourself.");
+      mark(type === "radio" ? el.closest("fieldset") || el : isCombo(el) ? comboBox(el) : el, "unanswered", "JobPilot AI has no saved answer for this. Please answer it yourself.");
     }
 
     banner(report);

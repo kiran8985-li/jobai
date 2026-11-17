@@ -301,3 +301,11 @@ describe("matching run", () => {
     expect(await runMatching({ store: m.store })).toEqual({ newMatches: 0, scored: 0, filtered: 0, aiReviews: 0 });
   });
 });
+
+import { findSkills as findSkillsForDesign } from "@/lib/skills";
+describe("design skills", () => {
+  it("recognises UI/UX and product design skills in an advert", () => {
+    const found = findSkillsForDesign("You will run user research, build prototypes in Figma, own our design system and meet WCAG accessibility.");
+    expect(found).toEqual(expect.arrayContaining(["user research", "prototyping", "figma", "design systems", "accessibility"]));
+  });
+});

@@ -36,7 +36,17 @@ export const SKILLS: Record<string, string[]> = {
   cybersecurity: ["cybersecurity", "cyber security", "infosec", "penetration testing"],
   networking: ["networking", "cisco", "ccna", "tcp/ip"],
   "windows server": ["windows server", "active directory"],
-  "ui/ux": ["ux", "ui design", "figma", "wireframing"], copywriting: ["copywriting"],
+  // Design (UI/UX and product design are IT roles for this beta).
+  "ui/ux": ["ux", "ui/ux", "ui design", "ux design", "user experience"], figma: ["figma"], sketch: ["sketch"],
+  "adobe xd": ["adobe xd"], "adobe creative suite": ["adobe creative suite", "photoshop", "illustrator", "after effects"],
+  prototyping: ["prototyping", "prototypes", "prototype"], wireframing: ["wireframing", "wireframes", "wireframe"],
+  "user research": ["user research", "ux research", "user interviews"],
+  "usability testing": ["usability testing", "user testing"], "design systems": ["design systems", "design system"],
+  "interaction design": ["interaction design"], "visual design": ["visual design"], "product design": ["product design"],
+  "information architecture": ["information architecture"], accessibility: ["accessibility", "wcag"],
+  "a/b testing": ["a/b testing", "a/b tests", "experimentation"], "journey mapping": ["journey mapping", "user journeys", "customer journeys"],
+  "motion design": ["motion design"], typography: ["typography"],
+  copywriting: ["copywriting"],
   gdpr: ["gdpr", "data protection"], compliance: ["compliance", "regulatory"],
   "microsoft office": ["microsoft office", "powerpoint", "office 365", "microsoft 365"],
 };

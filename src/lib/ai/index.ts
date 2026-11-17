@@ -116,10 +116,13 @@ export async function chatJson(
       maxTokens: req.maxTokens ?? 3000,
     });
     const parsed = extractJson(res.content);
-    await usage.log({ ...base, promptTokens: res.promptTokens, completionTokens: res.completionTokens, ok: true });
+    await usage.log({ ...base, model: res.model ?? base.model, promptTokens: res.promptTokens, completionTokens: res.completionTokens, ok: true });
     return parsed;
   } catch (err) {
     await usage.log({ ...base, promptTokens: 0, completionTokens: 0, ok: false }).catch(() => {});
+    // Error class and status only: never the message, which could echo CV text.
+    const kind = err instanceof Error ? err.constructor.name : typeof err;
+    console.warn(`[ai] ${req.purpose} failed: ${kind}${(err as { status?: number })?.status ? ` ${(err as { status?: number }).status}` : ""}`);
     // Only the error type is kept; a provider error message could echo the prompt.
     throw new AIUnavailable(`AI call failed: ${err instanceof Error ? err.name : "error"}`);
   }

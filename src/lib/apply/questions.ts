@@ -12,6 +12,7 @@ export type QuestionCheck =
 
 const LABELS: Record<string, string> = {
   right_to_work_uk: "Right to work in the UK",
+  current_location: "Where you live",
   notice_period: "Notice period",
   salary_expectation: "Salary expectation",
   willing_to_relocate: "Willing to relocate",
@@ -31,6 +32,7 @@ function standardKey(question: string): string | null {
   if (/notice period|notice/.test(q)) return "notice_period";
   if (/salary|pay expectation|expected pay|compensation expectation/.test(q)) return "salary_expectation";
   if (/relocat/.test(q)) return "willing_to_relocate";
+  if (/where do you live|where are you based|current location|location city|^city$|town or city/.test(q)) return "current_location";
   return null;
 }
 

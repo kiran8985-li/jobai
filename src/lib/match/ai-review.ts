@@ -48,7 +48,7 @@ export async function reviewMatch(
         user: `CANDIDATE\n${candidate}\n\nJOB ADVERT\nTitle: ${job.title}\nType: ${job.employment_type || "not stated"}\n${job.description.slice(0, 3500)}`,
         purpose: "match_review",
         userId,
-        maxTokens: 300,
+        maxTokens: 2000, // thinking models spend part of this before answering
       },
       deps,
     );

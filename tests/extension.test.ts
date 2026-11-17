@@ -49,7 +49,13 @@ describe("blocked sites", () => {
 
 describe("the extension never submits", () => {
   it("contains no click, submit or Enter key code", () => {
-    const fill = readFileSync("extension/fill.js", "utf8").replace(/\/\/[^\n]*/g, "");
+    const raw = readFileSync("extension/fill.js", "utf8").replace(/\/\/[^\n]*/g, "");
+    // Dropdown helpers may press keys/click, but only on dropdown options (checked below), never Enter.
+    const helpers = /function (chooseOption|openList|closeList)\([^)]*\) \{[\s\S]*?\n {2}\}\n/g;
+    expect(raw.match(helpers)).toHaveLength(3);
+    expect(raw).toMatch(/opt\.matches\('\[role="option"\], \[class\*="select__option"\]'\)/);
+    expect(raw).not.toMatch(/key:\s*"Enter"/);
+    const fill = raw.replace(helpers, "");
     expect(fill).not.toMatch(/\.submit\(|requestSubmit|\.click\(\)|dispatchEvent\(new (Mouse|Pointer|Keyboard)Event|key:\s*"Enter"/);
     expect(fill).not.toMatch(/new Event\("submit"/);
   });
@@ -69,5 +75,15 @@ describe("links from the CV", () => {
       website: "https://priya.dev/work",
     });
     expect(linksFrom("no links")).toEqual({ linkedin: "", github: "", website: "" });
+  });
+});
+
+import { tidyPhone } from "@/lib/extension/payload";
+describe("tidyPhone", () => {
+  it("drops the stray 0 after +44 and leaves other numbers alone", () => {
+    expect(tidyPhone("+4407887188905")).toBe("+44 7887188905");
+    expect(tidyPhone("+44 (0) 7887 188905")).toBe("+44 7887 188905");
+    expect(tidyPhone("07887 188905")).toBe("07887 188905");
+    expect(tidyPhone(undefined)).toBe("");
   });
 });

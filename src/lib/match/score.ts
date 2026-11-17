@@ -37,7 +37,7 @@ const mentions = (text: string, phrase: string) =>
 
 /** Every canonical skill the master CV supports: its skill list plus skills named in its text. */
 export function cvSkillSet(cv: CvProfile): Set<string> {
-  const text = [cv.headline, cv.summary, ...cv.certifications, ...cv.experience.flatMap((e) => [e.title, ...e.bullets]), ...cv.projects.flatMap((p) => [p.name, p.tech, ...p.bullets])].join("\n");
+  const text = [cv.headline, cv.summary, ...cv.skills, ...cv.certifications, ...cv.experience.flatMap((e) => [e.title, ...e.bullets]), ...cv.projects.flatMap((p) => [p.name, p.tech, ...p.bullets])].join("\n");
   return new Set([...cv.skills.map(canonical), ...findSkills(text)]);
 }
 

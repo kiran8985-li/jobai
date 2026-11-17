@@ -14,6 +14,12 @@ const LINK = {
 };
 const withScheme = (u: string | undefined) => (u ? (u.startsWith("http") ? u : `https://${u}`) : "");
 
+/** A UK number written as "+44 07…" has a stray 0 that forms reject; the number itself is unchanged. */
+export function tidyPhone(phone: string | undefined): string {
+  const p = (phone ?? "").trim();
+  return p.replace(/^\+44\s*\(?0\)?\s*/, "+44 ");
+}
+
 /** Links written in the user's own CV (they are not part of the structured profile). */
 export function linksFrom(rawText: string) {
   return { linkedin: withScheme(LINK.linkedin.exec(rawText)?.[0]), github: withScheme(LINK.github.exec(rawText)?.[0]), website: LINK.website.exec(rawText)?.[0] ?? "" };
@@ -68,8 +74,8 @@ export async function buildExtensionPayload(db: SupabaseClient, userId: string, 
       lastName: parts.slice(1).join(" "),
       fullName: cv.name,
       email: cv.email,
-      phone: cv.phone,
-      location: cv.location,
+      phone: tidyPhone(cv.phone),
+      location: cv.location || saved.current_location || "",
       ...linksFrom(master.rawText),
       currentTitle: current?.title ?? "",
       currentCompany: current?.company ?? "",

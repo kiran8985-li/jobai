@@ -37,6 +37,16 @@ export function detectKind(filename: string, data: Uint8Array): CvFileKind {
   throw new CvFileError("Unsupported file type. Upload a PDF, a Word file (.docx) or a text file (.txt).");
 }
 
+/**
+ * Web addresses behind links (a "LinkedIn" word linked to a profile, say). Plain-text extraction keeps
+ * only the word, so the addresses are added on a "Links:" line unless they already appear in the text.
+ */
+export function withLinkTargets(text: string, hrefs: string[]): string {
+  const extra = [...new Set(hrefs.map((h) => h.trim()).filter((h) => /^https?:\/\/[^\s]+$/i.test(h) && h.length <= 300))]
+    .filter((h) => !text.includes(h) && !text.includes(h.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "")));
+  return extra.length ? `${text}\nLinks: ${extra.join(" ")}` : text;
+}
+
 export async function extractText(filename: string, data: Uint8Array): Promise<{ text: string; kind: CvFileKind }> {
   if (data.byteLength === 0) throw new CvFileError("This file is empty.");
   if (data.byteLength > MAX_CV_BYTES) throw new CvFileError("This file is larger than 5 MB. Upload a smaller file.");
@@ -48,10 +58,17 @@ export async function extractText(filename: string, data: Uint8Array): Promise<{
       const pdf = await getDocumentProxy(new Uint8Array(data));
       const res = await pdfText(pdf, { mergePages: false });
       text = (res.text as string[]).join("\n");
+      const hrefs: string[] = [];
+      for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
+        const annots = await (await pdf.getPage(i)).getAnnotations().catch(() => []);
+        for (const a of annots as { subtype?: string; url?: string }[]) if (a.subtype === "Link" && a.url) hrefs.push(a.url);
+      }
+      text = withLinkTargets(text, hrefs);
     } else if (kind === "docx") {
       const mammoth = await import("mammoth");
       const res = await mammoth.extractRawText({ buffer: Buffer.from(data) });
-      text = res.value;
+      const html = await mammoth.convertToHtml({ buffer: Buffer.from(data) });
+      text = withLinkTargets(res.value, [...html.value.matchAll(/href="([^"]+)"/g)].map((m) => m[1].replace(/&amp;/g, "&")));
     } else {
       text = new TextDecoder("utf-8").decode(data);
     }

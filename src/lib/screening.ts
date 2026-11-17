@@ -10,6 +10,7 @@ export const STANDARD_QUESTIONS = [
       { value: "no", label: "No" },
     ],
   },
+  { key: "current_location", label: "Where do you live (town or city)?", placeholder: "For example: London" },
   { key: "notice_period", label: "What is your notice period?", placeholder: "For example: 1 month" },
   { key: "salary_expectation", label: "What salary are you looking for?", placeholder: "For example: £45,000 to £50,000" },
   {
