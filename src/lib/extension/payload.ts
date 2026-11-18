@@ -4,6 +4,8 @@ import { getMasterCv } from "../cv/store";
 import { normalizeProfile, type CvProfile } from "../cv/types";
 import { CUSTOM_PREFIX, STANDARD_QUESTIONS, isSensitiveQuestion } from "../screening";
 import { sameJob } from "./match-url";
+import { tidyPhone } from "../phone";
+export { tidyPhone };
 
 export type ExtensionJob = { id: string; title: string; company: string; apply_url: string; status: string | null; hasCv: boolean };
 
@@ -13,12 +15,6 @@ const LINK = {
   website: /https?:\/\/(?!(?:[a-z]{2,3}\.)?linkedin\.com|github\.com)[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s]*)?/i,
 };
 const withScheme = (u: string | undefined) => (u ? (u.startsWith("http") ? u : `https://${u}`) : "");
-
-/** A UK number written as "+44 07…" has a stray 0 that forms reject; the number itself is unchanged. */
-export function tidyPhone(phone: string | undefined): string {
-  const p = (phone ?? "").trim();
-  return p.replace(/^\+44\s*\(?0\)?\s*/, "+44 ");
-}
 
 /** Links written in the user's own CV (they are not part of the structured profile). */
 export function linksFrom(rawText: string) {

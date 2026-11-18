@@ -313,6 +313,7 @@ describe("design skills", () => {
 describe("short adverts", () => {
   it("does not give full skill marks when the advert names only one skill", () => {
     const r = scoreJob(job({ title: "Python Developer", description: "We use Python." }), profile(), new Set(["python"]));
+    if (r.filtered !== null) throw new Error("unexpectedly filtered");
     expect(r.breakdown.skills.points).toBeLessThan(45);
     expect(r.breakdown.skills.reason).toContain("short advert");
   });

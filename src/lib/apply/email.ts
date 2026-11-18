@@ -1,6 +1,7 @@
 import type { CvProfile } from "../cv/types";
 import { cvFilename } from "../render/layout";
 import type { Answered } from "./questions";
+import { tidyPhone } from "../phone";
 
 export type ApplicationEmail = {
   to: string;
@@ -45,7 +46,7 @@ export function buildApplicationEmail(cv: CvProfile, job: { title: string; compa
     "",
     "Kind regards,",
     cv.name,
-    ...[cv.phone, cv.email].filter(Boolean),
+    ...[tidyPhone(cv.phone), cv.email].filter(Boolean),
   ];
   return {
     to: job.apply_email,
