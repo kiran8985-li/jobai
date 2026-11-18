@@ -309,3 +309,11 @@ describe("design skills", () => {
     expect(found).toEqual(expect.arrayContaining(["user research", "prototyping", "figma", "design systems", "accessibility"]));
   });
 });
+
+describe("short adverts", () => {
+  it("does not give full skill marks when the advert names only one skill", () => {
+    const r = scoreJob(job({ title: "Python Developer", description: "We use Python." }), profile(), new Set(["python"]));
+    expect(r.breakdown.skills.points).toBeLessThan(45);
+    expect(r.breakdown.skills.reason).toContain("short advert");
+  });
+});

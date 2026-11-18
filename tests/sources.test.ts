@@ -234,3 +234,13 @@ describe("polite HTTP", () => {
     }
   });
 });
+
+import { dedupeKey as dedupeKeyCity } from "@/lib/sources/normalize";
+describe("dedupe across London districts", () => {
+  it("treats the same job posted per district as one vacancy", () => {
+    const a = dedupeKeyCity("Product UI Designer", "Rise Technical Recruitment", "Westminster, South West London");
+    expect(dedupeKeyCity("Product UI Designer", "Rise Technical Recruitment Limited", "Farringdon, Central London")).toBe(a);
+    expect(dedupeKeyCity("Product UI Designer", "Rise Technical Recruitment", "London, UK")).toBe(a);
+    expect(dedupeKeyCity("Product UI Designer", "Rise Technical Recruitment", "Manchester")).not.toBe(a);
+  });
+});

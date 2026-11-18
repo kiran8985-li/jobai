@@ -71,6 +71,12 @@ const startsLower = (s: string) => {
   return c !== "" && c === c.toLowerCase() && c !== c.toUpperCase();
 };
 
+/**
+ * A full sentence is a bullet point, never a job title or employer. Word files often lose their
+ * bullet symbols, so a long line or one that reads like a sentence is treated as a bullet.
+ */
+const isSentence = (s: string) => s.length > 90 || (/[.;!]$/.test(s) && s.split(/\s+/).length > 8);
+
 function parseExperience(lines: string[]): CvExperience[] {
   const entries: CvExperience[] = [];
   let current: CvExperience | null = null;
@@ -79,6 +85,13 @@ function parseExperience(lines: string[]): CvExperience[] {
     const line = raw.trim();
     if (!line) continue;
     const dm = DATE_RANGE_RE.exec(line);
+    if (!dm && isSentence(line) && entries.length) {
+      const last = current ?? entries[entries.length - 1];
+      if (last.bullets.length && startsLower(line)) last.bullets[last.bullets.length - 1] += " " + line;
+      else last.bullets.push(line);
+      buffer = [];
+      continue;
+    }
     if (BULLET_RE.test(line)) {
       if (!current) {
         current = { title: "", company: "", dates: "", bullets: [] };
@@ -89,7 +102,7 @@ function parseExperience(lines: string[]): CvExperience[] {
     }
     if (dm) {
       const rest = strip(line.slice(0, dm.index) + " " + line.slice(dm.index + dm[0].length), " ,|-–—()\t");
-      const head = [...buffer.filter(Boolean), ...(rest ? [rest] : [])];
+      const head = [...buffer.filter((b) => b && !isSentence(b)), ...(rest ? [rest] : [])];
       buffer = [];
       let title = "";
       let company = "";

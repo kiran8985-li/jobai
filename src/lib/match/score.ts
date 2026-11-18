@@ -98,6 +98,7 @@ function scoreRole(job: JobForMatch, profile: ProfileForMatch): Part {
 }
 
 // ---------------------------------------------------------------- skills
+const MIN_SKILLS_FOR_FULL = 4;
 function scoreSkills(job: JobForMatch, profile: ProfileForMatch, cvSkills: Set<string>) {
   const text = `${job.title}\n${job.description}`;
   const required = findSkills(text);
@@ -110,6 +111,12 @@ function scoreSkills(job: JobForMatch, profile: ProfileForMatch, cvSkills: Set<s
   if (required.length === 0) {
     ratio = 0.5;
     reason = "The advert names no skills we recognise, so skills count as half";
+  } else if (required.length < MIN_SKILLS_FOR_FULL) {
+    // A short advert (Adzuna sends only the first 500 characters) names few skills; "1 of 1" is not
+    // proof of a perfect fit, so the skills it does not name count as half.
+    const unseen = MIN_SKILLS_FOR_FULL - required.length;
+    ratio = (matching.length + 0.5 * unseen) / MIN_SKILLS_FOR_FULL;
+    reason = `${matching.length} of ${required.length} skills in the advert are on your CV (short advert)`;
   } else {
     ratio = matching.length / required.length;
     reason = `${matching.length} of ${required.length} skills in the advert are on your CV`;

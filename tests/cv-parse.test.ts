@@ -105,3 +105,26 @@ describe("normalizeProfile", () => {
     expect(Object.keys(p)).not.toContain("extra");
   });
 });
+
+import { heuristicParse as parseHeuristicLong } from "@/lib/cv/heuristic";
+import { fieldName, parseProfileForm } from "@/lib/cv/schema";
+describe("long lines in Word CVs without bullet symbols", () => {
+  it("keeps a full sentence as a bullet, not a job title", () => {
+    const text = [
+      "Jane Smith", "jane@example.com", "", "EXPERIENCE",
+      "UX Designer", "Acme Ltd", "Jan 2020 - Dec 2022",
+      "Designed onboarding flows in Figma for a mobile banking app used by thousands of customers every week.",
+      "Developed strong problem-solving, communication and collaboration skills while gaining hands-on experience in a fast-moving team.",
+      "Product Designer", "Beta Group", "Jan 2023 - Present",
+    ].join("\n");
+    const cv = parseHeuristicLong(text);
+    for (const e of cv.experience) { expect(e.title.length).toBeLessThanOrEqual(120); expect(e.company.length).toBeLessThanOrEqual(120); }
+    expect(cv.experience.map((e) => e.title)).toEqual(expect.arrayContaining(["UX Designer", "Product Designer"]));
+    expect(cv.experience.flatMap((e) => e.bullets).join(" ")).toContain("problem-solving");
+  });
+  it("names the field that is too long", () => {
+    expect(fieldName(["experience", 1, "title"])).toBe("Experience 2, job title");
+    const r = parseProfileForm(JSON.stringify({ name: "A", email: "", phone: "", location: "", headline: "", summary: "", skills: [], projects: [], education: [], certifications: [], languages: [], experience: [{ title: "x".repeat(130), company: "", dates: "", bullets: [] }] }));
+    expect("error" in r && r.error).toBe("Experience 1, job title: Keep each field under 120 characters.");
+  });
+});

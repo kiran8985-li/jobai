@@ -32,11 +32,17 @@ const norm = (s: string) =>
 /**
  * Jobs with the same normalised title + company + location are treated as one vacancy.
  * "Python Developer – Fernhill Software Ltd – Manchester, UK" and
- * "python developer / Fernhill Software / Manchester" give the same key.
+ * "python developer / Fernhill Software / Manchester" give the same key, and so do
+ * "Westminster, South West London" and "Farringdon, Central London".
  */
+// Big cities whose districts recruiters list separately ("Westminster, South West London").
+const CITIES = /\b(london|manchester|birmingham|leeds|glasgow|edinburgh|bristol|liverpool|sheffield|newcastle|nottingham|cardiff|belfast|leicester|cambridge|oxford|reading|milton keynes|brighton|southampton)\b/;
+
 export function dedupeKey(title: string, company: string, location: string): string {
   const c = norm(company).replace(/\b(ltd|limited|plc|inc|llc|llp|uk|group)\b/g, " ").replace(/\s+/g, " ").trim();
-  const l = norm((location || "").split(",")[0]).replace(/\b(greater|city of|uk|united kingdom|england|scotland|wales)\b/g, " ").replace(/\s+/g, " ").trim();
+  // Any district of a big city counts as that city, so one vacancy posted per district is still one job.
+  const city = CITIES.exec(norm(location || ""))?.[1];
+  const l = city ?? norm((location || "").split(",")[0]).replace(/\b(greater|city of|uk|united kingdom|england|scotland|wales)\b/g, " ").replace(/\s+/g, " ").trim();
   return [norm(title), c, l].join("|");
 }
 

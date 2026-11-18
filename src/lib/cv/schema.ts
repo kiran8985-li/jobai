@@ -28,6 +28,22 @@ const profileSchema = z.object({
   languages: z.array(line(60)).max(20),
 });
 
+const SECTION: Record<string, string> = { experience: "Experience", projects: "Project", education: "Education", certifications: "Certification", languages: "Language", skills: "Skill" };
+const FIELD: Record<string, string> = { name: "Name", email: "Email", phone: "Phone", location: "Location", headline: "Headline", summary: "Summary", title: "job title", company: "employer", dates: "dates", bullets: "bullet point", degree: "qualification", institution: "school or university", tech: "tools" };
+
+/** "experience.1.title" → "Experience 2, job title", so the user knows where to look. */
+export function fieldName(path: PropertyKey[]): string {
+  const parts: string[] = [];
+  for (let i = 0; i < path.length; i++) {
+    const k = String(path[i]);
+    const next = path[i + 1];
+    if (SECTION[k] && typeof next === "number") { parts.push(`${SECTION[k]} ${next + 1}`); i++; }
+    else if (k === "bullets" && typeof next === "number") { parts.push(`bullet point ${next + 1}`); i++; }
+    else if (FIELD[k]) parts.push(FIELD[k]);
+  }
+  return parts.join(", ") || "A field";
+}
+
 export function parseProfileForm(json: string): { profile: CvProfile } | { error: string } {
   let data: unknown;
   try {
@@ -36,7 +52,10 @@ export function parseProfileForm(json: string): { profile: CvProfile } | { error
     return { error: "The form could not be read. Reload the page and try again." };
   }
   const parsed = profileSchema.safeParse(data);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return { error: issue ? `${fieldName(issue.path)}: ${issue.message}` : "Check the form and try again." };
+  }
   return { profile: normalizeProfile(parsed.data) };
 }
 
