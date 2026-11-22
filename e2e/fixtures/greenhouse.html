@@ -50,7 +50,7 @@
 <script>
   // Counts any attempt to submit, so the test can prove the extension never submits.
   window.submitAttempts = 0;
-  document.getElementById("application_form").addEventListener("submit", (e) => { e.preventDefault(); window.submitAttempts++; document.title = "SUBMITTED"; });
+  document.getElementById("application_form").addEventListener("submit", (e) => { e.preventDefault(); window.submitAttempts++; document.title = "SUBMITTED"; document.body.insertAdjacentHTML("beforeend", "<h2 id=\"thanks\">Thank you for applying. We have received your application.</h2>"); });
   document.getElementById("submit_app").addEventListener("click", () => { window.submitClicks = (window.submitClicks || 0) + 1; });
 </script>
 </body>

@@ -34,6 +34,7 @@
     ["notice_period", /notice period|when can you start|availability to start|start date/],
     ["salary_expectation", /salary|compensation|pay expectation|desired pay|expected pay/],
     ["willing_to_relocate", /relocat/],
+    ["heard_about", /how did you (hear|find out|learn) about|where did you (hear|see|find)|how did you find (this|the|our)/],
   ];
 
   const isBlocked = () => BLOCKED_HOSTS.some((b) => location.hostname === b || location.hostname.endsWith("." + b));
@@ -46,7 +47,12 @@
     if (by) by.split(/\s+/).forEach((id) => { const t = document.getElementById(id); if (t) parts.push(t.textContent); });
     if (el.id) { const l = document.querySelector(`label[for="${CSS.escape(el.id)}"]`); if (l) parts.push(l.textContent); }
     const wrap = el.closest("label");
-    if (wrap) parts.push(wrap.textContent);
+    if (wrap) {
+      // The label's own words only: a dropdown inside it would add all its options to the label.
+      const copy = wrap.cloneNode(true);
+      copy.querySelectorAll("select, option, input, textarea").forEach((n) => n.remove());
+      parts.push(copy.textContent);
+    }
     if ((el.type === "radio" || el.type === "checkbox") && el.closest("fieldset")) {
       const legend = el.closest("fieldset").querySelector("legend");
       if (legend) parts.push(legend.textContent);

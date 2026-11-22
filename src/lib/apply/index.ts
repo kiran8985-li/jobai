@@ -4,6 +4,8 @@ import { createSupabaseAdminClient } from "../supabase/admin";
 import { createResendSender } from "./resend";
 import { runApply, type ApplyResult } from "./run";
 import { supabaseApplyStore } from "./supabase-store";
+import { createBrowserRobot } from "../robot/browser";
+import { makeAnswerer } from "../robot/answer";
 
 /**
  * Email sending is switched OFF for now, on purpose: every application is prepared and stored, and
@@ -30,5 +32,8 @@ export async function runConfiguredApply(opts: { userId?: string } = {}): Promis
     mailFrom: e.MAIL_FROM,
     sender: createResendSender(e.RESEND_API_KEY),
     userId: opts.userId,
+    robot: e.ROBOT_ENABLED ? createBrowserRobot({ proxy: process.env.HTTPS_PROXY || undefined }) : null,
+    robotMode: e.ROBOT_MODE,
+    answererFor: (userId, cv, saved) => makeAnswerer(userId, cv, saved),
   });
 }

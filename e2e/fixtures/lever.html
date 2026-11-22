@@ -43,7 +43,7 @@
 </form>
 <script>
   window.submitAttempts = 0;
-  document.getElementById("application-form").addEventListener("submit", (e) => { e.preventDefault(); window.submitAttempts++; document.title = "SUBMITTED"; });
+  document.getElementById("application-form").addEventListener("submit", (e) => { e.preventDefault(); window.submitAttempts++; document.title = "SUBMITTED"; document.body.insertAdjacentHTML("beforeend", "<h2 id=\"thanks\">Thank you for applying. We have received your application.</h2>"); });
 </script>
 </body>
 </html>

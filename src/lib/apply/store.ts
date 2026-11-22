@@ -19,6 +19,8 @@ export type ApplyUser = {
   /** screening_answers as key → answer */
   answers: Record<string, string>;
   profiles: ApplyProfile[];
+  /** Links written in the master CV (LinkedIn, GitHub, portfolio), for filling forms. */
+  links?: { linkedin: string; github: string; website: string };
   /** Matches at or above their search's minimum, best first, that have a tailored CV and no application yet. */
   candidates: ApplyCandidate[];
 };
@@ -44,6 +46,8 @@ export interface ApplyStore {
   addNotification(n: NewNotification): Promise<void>;
   /** The tailored PDF to attach. */
   readTailoredPdf(path: string): Promise<Uint8Array | null>;
+  /** Keeps the robot's screenshot of a filled form; returns where it was stored. */
+  saveScreenshot?(userId: string, applicationId: string, png: Uint8Array): Promise<string | null>;
 }
 
 const AUTO: AppStatus[] = ["prepared", "dry_run", "sent", "failed"];

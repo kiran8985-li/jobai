@@ -81,6 +81,14 @@ export const serverEnvSchema = publicEnvSchema.extend({
     .optional()
     .transform((v) => (v && v.trim() ? v.trim() : "dry_run"))
     .pipe(z.enum(["dry_run", "live"], { message: 'must be "dry_run" or "live"' })),
+  /** The apply robot fills employer forms. Off unless "true". */
+  ROBOT_ENABLED: boolWithDefault(false),
+  /** "live" lets the robot press Submit; "dry_run" (default) fills the form and stops before Submit. */
+  ROBOT_MODE: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim() ? v.trim() : "dry_run"))
+    .pipe(z.enum(["dry_run", "live"], { message: 'must be "dry_run" or "live"' })),
   RESEND_API_KEY: optional,
   MAIL_FROM: optional,
   DEFAULT_MIN_MATCH: intWithDefault(75).pipe(z.number().max(100, "must be 0–100")),

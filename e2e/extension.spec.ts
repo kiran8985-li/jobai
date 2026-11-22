@@ -159,14 +159,16 @@ test("the extension fills Greenhouse and Lever forms, never submits, and does no
         expect(await v(`#${id}`), id).toBe("");
         expect(await gh.locator(`#${id}`).getAttribute("data-jobpilot"), id).toBe("sensitive");
       }
-      for (const id of ["q_hear", "q_privacy"]) expect(await gh.locator(`#${id}`).getAttribute("data-jobpilot"), id).toBe("unanswered");
+      // "How did you hear" is answered truthfully for every user; the privacy tick box is always left to them.
+      expect(await v("#q_hear")).toBe("Online job search");
+      expect(await gh.locator("#q_privacy").getAttribute("data-jobpilot")).toBe("unanswered");
       expect(await gh.locator("#q_privacy").isChecked()).toBe(false);
       expect(await v("#q_website")).toBe("");
       expect(await gh.evaluate(() => ({ s: (window as unknown as { submitAttempts: number }).submitAttempts, c: (window as unknown as { submitClicks?: number }).submitClicks ?? 0 }))).toEqual({ s: 0, c: 0 });
       expect(await gh.title()).not.toBe("SUBMITTED");
       await expect(gh.locator("#jobpilot-banner")).toContainText("press Submit yourself");
       const report = await popup.locator("#result").textContent();
-      expect(report).toMatch(/Filled 10 fields, attached Priya-Shah-CV-Acme-Fintech\.pdf/);
+      expect(report).toMatch(/Filled 11 fields, attached Priya-Shah-CV-Acme-Fintech\.pdf/);
       expect(report).toMatch(/Never answered by JobPilot AI \(5\)/);
       await shot(gh, "x05-greenhouse-filled");
 

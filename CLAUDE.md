@@ -16,9 +16,11 @@ product to everyone later, switch `SIGNUP_MODE` from `invite` to `open`; nothing
 customers. The site is focused on computer/IT jobs but works for any job type. Testers are normal users only: no
 admin panel for them and **no in-app feedback button** (they report back to the owner in person). The owner keeps
 their own notes. Success = at least half the testers get a reply or interview and no wrong application is sent.
-Auto-apply is **partly manual**: automatic where possible (email and supported integrations); everything else is a
-fully prepared application with one-click Manual Apply. Every job shows clearly whether it was sent or is waiting
-for the user.
+Auto-apply is **fully automatic where it is safe** (owner's decision, 22 Nov 2026): by email, or by the **apply robot**,
+which fills the employer's own application form on the server and presses Submit. The user gives one consent when they
+start (no approval per application). Anything the robot must not or cannot do (a sensitive or unanswerable required
+question, an "are you a robot" check, LinkedIn/Indeed) becomes a fully prepared Manual Apply with the reason. Every job
+shows clearly whether it was sent or is waiting for the user.
 
 ## The core loop
 
@@ -49,9 +51,13 @@ Note: Vercel Hobby cron only runs once a day, which is why the 15-minute schedul
    approved master CV. Every bullet, skill, employer, date and number must trace back to the master. A validator
    enforces this in code; anything that fails is dropped and flagged, never sent.
 2. **Dry run by default.** `APPLY_MODE=dry_run` prepares applications (CV, email, answers) and stores them but sends
-   nothing. Real sending needs `APPLY_MODE=live` AND the user's explicit auto-apply consent on that search profile.
-3. **Skip, don't guess.** If a job asks a screening question the user has not answered, or a sensitive one
-   (disability, ethnicity, health, criminal record, religion, sexual orientation), skip the application and notify the user.
+   nothing; `ROBOT_MODE=dry_run` fills employer forms, keeps a screenshot, cuts the page off from the network and stops
+   before Submit. Real sending needs `APPLY_MODE=live` / `ROBOT_MODE=live` AND the user's auto-apply consent.
+3. **Skip, don't guess.** A question with no saved answer may be answered by AI **only from facts in the user's CV and
+   saved answers** (every number must appear in the CV; never salary, right to work, notice, licences, location or other
+   personal facts). If it still cannot be answered, or it is sensitive (disability, ethnicity, gender, health, criminal
+   record, religion, sexual orientation), the application is not submitted and the user is notified. Never get past
+   an "are you a robot" check.
 4. **No LinkedIn or Indeed automation or scraping.** Allowed sources: official APIs (Adzuna, Reed), public ATS
    job-board feeds (Greenhouse, Lever, Ashby, Workable), partner feeds, and career pages only where robots.txt and
    the terms allow it, at a slow rate, behind a per-source on/off switch. Adzuna: free key is for evaluation; show "Jobs by Adzuna"
@@ -105,7 +111,8 @@ Optionally ask the AI to review jobs at or above `min_match − 10`, capped per 
 ## Browser extension (Prompt 12, after the core app works)
 
 A Chrome extension that fills application forms from the approved master CV and the tailored CV for the job. The
-user reviews and presses Submit themselves; it never submits on its own and never runs on LinkedIn or Indeed. It
+user reviews and presses Submit themselves; it never submits on its own and never runs on LinkedIn or Indeed (submitting
+automatically is the server-side apply robot's job, not the extension's). It
 reads data only from the user's own account via a short-lived token.
 
 ## Reference code
