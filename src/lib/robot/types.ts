@@ -12,7 +12,7 @@ export type RobotInput = {
   cv: { filename: string; bytes: Uint8Array };
   mode: RobotMode;
   /** Answers a question the form asks that no saved answer covers, from CV facts only; null when it cannot. */
-  answer?: (question: string) => Promise<string | null>;
+  answer?: (question: string, options?: string[]) => Promise<string | null>;
 };
 
 export type RobotOutcome =

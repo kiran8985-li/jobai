@@ -23,7 +23,8 @@
     ["currentTitle", /current (job )?(title|role|position)|^job title$|^title$/, "organization-title"],
     ["location", /\blocation\b|\bcity\b|where (do )?you (live|are based)|current address|town/, "address-level2"],
     ["school", /school|university|college|institution/, null],
-    ["degree", /\bdegree\b|qualification|discipline|field of study/, null],
+    ["discipline", /discipline|field of study|\bmajor\b|subject studied|course of study/, null],
+    ["degree", /\bdegree\b|qualification/, null],
     ["skills", /\bskills\b/, null],
     ["fullName", /^(full )?name$|your name|full name|legal name|^name\b/, "name"],
   ];
@@ -96,6 +97,12 @@
   function optionFor(options, answer) {
     const a = norm(answer);
     const yes = /^yes\b/.test(a), no = /^no\b/.test(a);
+    // Degree level: "Master of Science in …" picks an option like "Master's Degree".
+    const level = /^(master|msc|m\.?sc|mba|ma\b|meng|mres)/.test(a) ? /master/ : /^(bachelor|bsc|b\.?sc|btech|b\.?tech|ba\b|beng)/.test(a) ? /bachelor/ : /^(phd|doctor)/.test(a) ? /doctor|phd/ : null;
+    if (level) {
+      const l = options.filter((o) => level.test(norm(o.text)));
+      if (l.length) return l[0];
+    }
     // "Yes, but I need sponsorship" matches an option about needing sponsorship (not one about working without it).
     if (/sponsor/.test(a)) {
       const s = options.filter((o) => /sponsor/.test(norm(o.text)) && !/without|not (be )?(require|need)|no sponsor/.test(norm(o.text)));
@@ -132,18 +139,40 @@
     el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
   }
 
-  /** Search-style dropdowns (React Select and similar): type the answer, then click the matching option. */
+  /** Search words to try: the whole answer, then shorter forms ("Master of Science in X" → "Master"). */
+  function queriesFor(answer) {
+    const a = String(answer || "").trim();
+    const words = a.split(/[\s,]+/).filter(Boolean);
+    const level = /^(master|msc|mba|meng|mres)/i.test(a) ? "Master" : /^(bachelor|bsc|btech|b\.tech|ba\b|beng)/i.test(a) ? "Bachelor" : /^(phd|doctor)/i.test(a) ? "Doctor" : "";
+    const list = a.length <= 40 ? [a] : [];
+    if (level) list.push(level);
+    if (words.length > 2) list.push(words.slice(0, 2).join(" "));
+    if (words.length > 1) list.push(words[0]);
+    list.push("");
+    return [...new Set(list)];
+  }
+
+  /** Search-style dropdowns (React Select and similar): type, wait for the list, click the matching option. */
   async function pickCombo(el, answer) {
-    openList(el);
-    for (const query of [answer, ""]) {
+    const seen = (o) => o.getClientRects().length > 0 && getComputedStyle(o).visibility !== "hidden";
+    for (const query of queriesFor(answer)) {
       setValue(el, query);
-      for (let i = 0; i < 15; i++) {
+      openList(el);
+      // Lists that load from the employer's site show "Loading…" first: wait up to 6 seconds for them.
+      for (let i = 0; i < 60; i++) {
         await sleep(100);
-        const list = el.getAttribute("aria-controls") && document.getElementById(el.getAttribute("aria-controls"));
-        const opts = [...(list || document).querySelectorAll('[role="option"], [class*="select__option"]')].map((o) => ({ el: o, text: o.textContent }));
+        // Only this dropdown's own options, and only visible ones: pages often hold other hidden lists
+        // (a phone field's 244 country codes, for example).
+        const ownId = el.getAttribute("aria-controls") || el.getAttribute("aria-owns");
+        const own = ownId && document.getElementById(ownId);
+        const box = el.closest('[class*="select__container"], [class*="select-container"]');
+        const menu = own || (box && box.querySelector('[class*="select__menu"], [role="listbox"]'));
+        const scope = menu || document;
+        const opts = [...scope.querySelectorAll('[role="option"], [class*="select__option"]')].filter(seen).map((o) => ({ el: o, text: o.textContent }));
         const o = opts.length && optionFor(opts, answer);
-        if (o && chooseOption(o.el)) { await sleep(50); return true; }
+        if (o && chooseOption(o.el)) { await sleep(100); return true; }
         if (opts.length) break;
+        if (!(menu && /loading/i.test(menu.textContent || "")) && i >= 15) break;
       }
     }
     closeList(el);
@@ -188,13 +217,20 @@
   const pretty = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
   window.__jobpilotFill = async function fill(data) {
-    const report = { filled: [], attached: null, sensitive: [], unanswered: [], blocked: false };
+    // `combos`: dropdowns that ignore scripted clicks; a caller that can click for real (the apply robot) may finish them.
+    const report = { filled: [], attached: null, sensitive: [], unanswered: [], blocked: false, combos: [] };
     if (isBlocked()) return { ...report, blocked: true };
     const p = data.person || {};
     const answers = data.answers || [];
     const byKey = Object.fromEntries(answers.filter((a) => a.key !== "custom").map((a) => [a.key, a]));
     const custom = answers.filter((a) => a.key === "custom");
-    const values = { ...p, school: (p.education && p.education[0] && p.education[0].school) || "", degree: (p.education && p.education[0] && p.education[0].degree) || "" };
+    const ed = (p.education && p.education[0]) || {};
+    const fullDegree = ed.degree || "";
+    // "Master of Science in Information Systems" → degree "Master of Science…", discipline "Information Systems".
+    const discipline = (/ in (.+)$/i.exec(fullDegree) || [])[1] || "";
+    // The university's name without its town ("Ravensbourne University London, London, UK").
+    const school = (ed.school || "").split(",")[0].trim();
+    const values = { ...p, school, degree: fullDegree, discipline };
 
     const fields = [...document.querySelectorAll("input, textarea, select")].filter(visible);
     const doneGroups = new Set();
@@ -254,7 +290,11 @@
         if (key === "fullName" && /first|last|given|family|surname|company|user/.test(text)) continue;
         const v = values[key];
         if (!v || el instanceof HTMLSelectElement || type === "radio") break;
-        if (isCombo(el)) { if (await pickCombo(el, v)) { report.filled.push(label || key); mark(comboBox(el), "filled"); filled = true; } break; }
+        if (isCombo(el)) {
+          if (await pickCombo(el, v)) { report.filled.push(label || key); mark(comboBox(el), "filled"); filled = true; }
+          else if (el.id) report.combos.push({ id: el.id, label, answer: String(v), queries: queriesFor(v) });
+          break;
+        }
         setValue(el, v);
         report.filled.push(label || key);
         mark(el, "filled");
@@ -287,6 +327,7 @@
           if (o) { setChecked(o.el); report.filled.push(label); mark(o.el.closest("fieldset") || o.el, "filled"); continue; }
         } else if (isCombo(el)) {
           if (await pickCombo(el, answer)) { report.filled.push(label); mark(comboBox(el), "filled"); continue; }
+          if (el.id) report.combos.push({ id: el.id, label, answer: String(answer), queries: queriesFor(answer) });
         } else {
           setValue(el, answer);
           report.filled.push(label);

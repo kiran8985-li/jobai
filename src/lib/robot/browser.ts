@@ -20,7 +20,85 @@ const CHALLENGE = /recaptcha\/(api2|enterprise)\/(anchor|bframe)|hcaptcha\.com|c
 let fillScript: string | null = null;
 const fillJs = () => (fillScript ??= readFileSync(path.join(process.cwd(), "extension", "fill.js"), "utf8"));
 
-type FillReport = { filled: string[]; attached: string | null; sensitive: string[]; unanswered: string[]; blocked: boolean };
+type Combo = { id: string; label: string; answer: string; queries: string[] };
+type FillReport = { filled: string[]; attached: string | null; sensitive: string[]; unanswered: string[]; blocked: boolean; combos?: Combo[] };
+
+const norm = (s: string) => (s || "").toLowerCase().replace(/\s+/g, " ").replace(/[*:?]+$/g, "").trim();
+
+/** Which option means the same as the answer (same rules as the add-on's filler). Exported for tests. */
+export function chooseOption(options: string[], answer: string): number {
+  const a = norm(answer);
+  const usable = options.map((t, i) => ({ t: norm(t), i })).filter((o) => o.t && !/^(select|choose|please select|--|loading|no options)/.test(o.t));
+  const exact = usable.find((o) => o.t === a);
+  if (exact) return exact.i;
+  if (/sponsor/.test(a)) {
+    const sp = usable.filter((o) => /sponsor/.test(o.t) && !/without|not (be )?(require|need)|no sponsor/.test(o.t));
+    if (sp.length === 1) return sp[0].i;
+  }
+  const level = /^(master|msc|m\.?sc|mba|ma\b|meng|mres)/.test(a) ? /master/ : /^(bachelor|bsc|b\.?sc|btech|b\.?tech|ba\b|beng)/.test(a) ? /bachelor/ : /^(phd|doctor)/.test(a) ? /doctor|phd/ : null;
+  if (level) {
+    const l = usable.find((o) => level.test(o.t));
+    if (l) return l.i;
+  }
+  if (/^yes\b/.test(a)) { const y = usable.find((o) => /^yes\b/.test(o.t)); if (y) return y.i; }
+  if (/^no\b/.test(a)) { const n = usable.find((o) => /^no\b/.test(o.t)); if (n) return n.i; }
+  if (a.length > 3) {
+    const inc = usable.find((o) => o.t.length > 3 && (o.t.includes(a) || a.includes(o.t)));
+    if (inc) return inc.i;
+  }
+  return -1;
+}
+
+/** The options of every search-style dropdown, by its label (opened with real clicks, then closed). */
+async function dropdownOptions(page: Page): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  for (const f of await formFrames(page)) {
+    const boxes = await f.evaluate(`[...document.querySelectorAll("input[role=combobox][id]")].map((el) => {
+      const by = el.getAttribute("aria-labelledby");
+      const lab = (by && document.getElementById(by)) || document.querySelector('label[for="' + CSS.escape(el.id) + '"]');
+      return { id: el.id, label: (lab && lab.textContent) || "", list: el.getAttribute("aria-controls") || "" };
+    })`).catch(() => []) as { id: string; label: string; list: string }[];
+    for (const b of boxes) {
+      const input = f.locator(`[id="${b.id.replace(/"/g, "")}"]`);
+      if (!(await input.isVisible().catch(() => false))) continue;
+      await input.click({ timeout: 3000 }).catch(() => {});
+      const opts = f.locator(`[id="${(b.list || `react-select-${b.id}-listbox`).replace(/"/g, "")}"] [role="option"]`);
+      for (let i = 0; i < 8 && (await opts.count().catch(() => 0)) === 0; i++) await f.waitForTimeout(250);
+      const texts = (await opts.allTextContents().catch(() => [] as string[])).map((t) => t.trim()).filter(Boolean);
+      await input.press("Escape").catch(() => {});
+      if (texts.length && texts.length <= 60) out.set(norm(b.label), texts);
+    }
+  }
+  return out;
+}
+
+/** Dropdowns that ignore scripted clicks, finished with real clicks and typing. Returns the labels picked. */
+async function pickCombosForReal(frame: Frame, combos: Combo[]): Promise<string[]> {
+  const picked: string[] = [];
+  for (const c of combos) {
+    const input = frame.locator(`[id="${c.id.replace(/"/g, "")}"]`);
+    if (!(await input.isVisible().catch(() => false))) continue;
+    const listId = (await input.getAttribute("aria-controls").catch(() => null)) || `react-select-${c.id}-listbox`;
+    const options = frame.locator(`[id="${listId.replace(/"/g, "")}"] [role="option"]`);
+    let done = false;
+    for (const q of c.queries) {
+      await input.click({ timeout: 5000 }).catch(() => {});
+      await input.fill("").catch(() => {});
+      if (q) await input.pressSequentially(q, { delay: 25 }).catch(() => {});
+      // Lists that load from the employer's site take a moment.
+      for (let i = 0; i < 24 && (await options.count().catch(() => 0)) === 0; i++) await frame.waitForTimeout(250);
+      const texts = await options.allTextContents().catch(() => [] as string[]);
+      const idx = chooseOption(texts, c.answer);
+      if (idx >= 0) {
+        await options.nth(idx).click({ timeout: 5000 }).then(() => (done = true), () => {});
+        if (done) break;
+      }
+      await input.press("Escape").catch(() => {});
+    }
+    if (done) picked.push(c.label);
+  }
+  return picked;
+}
 
 /** Frames that hold form fields (application forms are sometimes inside a frame). */
 async function formFrames(page: Page): Promise<Frame[]> {
@@ -44,6 +122,8 @@ async function visibleChallenge(page: Page) {
   for (const el of await page.locator("iframe").all()) {
     const src = (await el.getAttribute("src").catch(() => "")) ?? "";
     if (!CHALLENGE.test(src)) continue;
+    // The invisible kind only shows a small badge and asks nothing of a person; a puzzle or tick box does.
+    if (/[?&]size=invisible\b/.test(src)) continue;
     const box = await el.boundingBox().catch(() => null);
     const shown = await el.isVisible().catch(() => false);
     if (shown && box && box.width > 60 && box.height > 40 && box.y > -1000) return true;
@@ -61,6 +141,7 @@ async function fillAll(page: Page, data: unknown): Promise<FillReport> {
     merged.sensitive.push(...r.sensitive);
     merged.unanswered.push(...r.unanswered);
     merged.attached ??= r.attached;
+    if (r.combos?.length) merged.filled.push(...(await pickCombosForReal(f, r.combos)));
     merged.blocked ||= r.blocked;
   }
   return merged;
@@ -169,9 +250,11 @@ export function createBrowserRobot(opts: { proxy?: string; headless?: boolean } 
       if (BLOCKED.test(new URL(page.url()).hostname)) return { ...base, outcome: "needs_user", reason: "This job sends you to LinkedIn or Indeed, where JobPilot never applies." };
       if (!(await openForm(page))) return { ...base, outcome: "needs_user", reason: "The robot could not find the application form on the employer's page." };
       if (await visibleChallenge(page)) return { ...base, outcome: "needs_user", reason: "The employer's form has an 'are you a robot' check, so you need to submit it yourself." };
-      // Test mode: once the form is open, nothing more may reach the employer (some forms upload the CV
+      // Test mode: once the form is open, nothing may be SENT to the employer (some forms upload the CV
       // as soon as it is attached, before Submit).
-      if (input.mode !== "live") await page.context().route("**/*", (r) => r.abort()).catch(() => {});
+      // Look-ups that only read (a list of universities as you type) still work; anything that sends
+      // data (a CV upload, a submit) is stopped.
+      if (input.mode !== "live") await page.context().route("**/*", (r) => (r.request().method() === "GET" ? r.continue() : r.abort())).catch(() => {});
 
       const data = { ...input.data, cv: { filename: input.cv.filename, base64: Buffer.from(input.cv.bytes).toString("base64") } };
       let report = await fillAll(page, data);
@@ -179,15 +262,17 @@ export function createBrowserRobot(opts: { proxy?: string; headless?: boolean } 
       // Questions no saved answer covers: ask the answerer (CV facts only), never for sensitive ones.
       const aiAnswered: RobotResult["aiAnswered"] = [];
       if (input.answer) {
+        const choices = report.unanswered.length ? await dropdownOptions(page) : new Map<string, string[]>();
+        if (process.env.ROBOT_DEBUG) console.log("[robot] dropdowns:", [...choices.keys()], "questions:", report.unanswered.map(norm));
         for (const q of report.unanswered.slice(0, 12)) {
           if (isSensitiveQuestion(q) || SENSITIVE_LOOSE.test(q) || /^(attach|upload|file upload)$|cover letter|\bfile\b/i.test(q)) continue;
-          const a = await input.answer(q).catch(() => null);
+          const a = await input.answer(q, choices.get(norm(q))).catch(() => null);
           if (a && a.trim()) aiAnswered.push({ question: q, answer: a.trim().slice(0, 1500) });
         }
         if (aiAnswered.length) {
           const more = { ...data, answers: [...input.data.answers, ...aiAnswered.map((x) => ({ key: "custom", question: x.question, answer: x.answer }))] };
           const again = await fillAll(page, more);
-          report = { ...again, filled: [...new Set([...report.filled, ...again.filled])] };
+          report = { ...again, attached: again.attached ?? report.attached, filled: [...new Set([...report.filled, ...again.filled])] };
         }
       }
       const missing = await requiredMissing(page);
